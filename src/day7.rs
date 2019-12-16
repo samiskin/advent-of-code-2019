@@ -90,7 +90,6 @@ impl Program {
                 9 => self.base += vals[0],
 
                 3 => {
-                    print!("Input {:?}\n", self.input_queue.front().unwrap());
                     match self.input_queue.pop_front() {
                         Some(input) => self.mem[addrs[0]] = input,
                         None => {
@@ -111,9 +110,12 @@ pub fn run(program: &str, inputs: Vec<i32>) -> i32 {
     let mut programs: Vec<Program> = (0..5).map(|_| Program::new(program)).collect();
     let mut carry = 0;
     let mut any_done = false;
+    for (i, prog) in programs.iter_mut().enumerate() {
+        prog.exec([inputs[i]].to_vec());
+    }
     while !any_done {
         for (i, prog) in programs.iter_mut().enumerate() {
-            let outputs = prog.exec([inputs[i], carry].to_vec());
+            let outputs = prog.exec([carry].to_vec());
             match outputs {
                 Some(val) => carry = val,
                 None => {
@@ -126,16 +128,24 @@ pub fn run(program: &str, inputs: Vec<i32>) -> i32 {
     carry
 }
 
-pub fn find_max(program: &str) -> i32 {
-    range_n(vec![2, 2, 2, 2]).iter().filter(|arr| {
-        let mut used = vec![];
-        arr.iter().fold(true, |carry, i| if used.contains(i) {
-            false
-        } else {
-            used.push(*i);
-            carry
+pub fn find_max(program: &str, offset: i32) -> i32 {
+    range_n(vec![5, 5, 5, 5, 5])
+        .iter()
+        .filter(|arr| {
+            let mut used = vec![];
+            arr.iter().fold(true, |carry, i| {
+                if used.contains(i) {
+                    false
+                } else {
+                    used.push(*i);
+                    carry
+                }
+            })
         })
-    }).fold(0, |a, b| { print!("{:?}", b); 0 })
+        .map(|params| params.iter().map(|n| n + offset).collect())
+        .fold(0, |max, params: Vec<i32>| {
+            std::cmp::max(max, run(program, params))
+        })
 }
 
 #[cfg(test)]
@@ -149,13 +159,40 @@ mod test {
     }
 
     #[test]
-    fn test_day7() {
+    fn test_day7_run_part1() {
         assert_eq!(
             run(
                 "3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0",
                 [0, 1, 2, 3, 4].to_vec()
             ),
             54321
+        );
+    }
+
+    #[test]
+    fn test_day7_run_part2() {
+        assert_eq!(
+            run(
+                "3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5",
+                [9, 8, 7 ,6, 5].to_vec()
+            ),
+            139629729 
+        );
+    }
+
+    #[test]
+    fn test_find_max() {
+        assert_eq!(
+            find_max("3,23,3,24,1002,24,10,24,1002,23,-1,23,101,5,23,23,1,24,23,23,4,23,99,0,0", 0),
+            54321
+        );
+        assert_eq!(
+            find_max("3,26,1001,26,-4,26,3,27,1002,27,2,27,1,27,26,27,4,27,1001,28,-1,28,1005,28,6,99,0,0,5", 5),
+            139629729 
+        );
+        assert_eq!(
+            find_max("3,8,1001,8,10,8,105,1,0,0,21,34,51,68,89,98,179,260,341,422,99999,3,9,1001,9,4,9,102,4,9,9,4,9,99,3,9,1002,9,5,9,1001,9,2,9,1002,9,2,9,4,9,99,3,9,1001,9,3,9,102,3,9,9,101,4,9,9,4,9,99,3,9,102,2,9,9,101,2,9,9,1002,9,5,9,1001,9,2,9,4,9,99,3,9,102,2,9,9,4,9,99,3,9,101,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,99,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,1,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,1,9,9,4,9,3,9,1001,9,2,9,4,9,99,3,9,101,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,1,9,4,9,3,9,1002,9,2,9,4,9,3,9,1002,9,2,9,4,9,3,9,102,2,9,9,4,9,99,3,9,1001,9,1,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,1,9,4,9,3,9,1002,9,2,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,1,9,4,9,3,9,1001,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,101,2,9,9,4,9,3,9,101,2,9,9,4,9,99,3,9,1002,9,2,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,102,2,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,101,2,9,9,4,9,3,9,1001,9,2,9,4,9,3,9,102,2,9,9,4,9,3,9,1002,9,2,9,4,9,3,9,101,1,9,9,4,9,99", 5),
+            12932154 
         );
     }
 }

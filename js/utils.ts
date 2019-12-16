@@ -84,33 +84,51 @@ export const getNeighbors = (x: number, y: number): Array<[number, number]>  => 
     .map(([dx, dy]) => [x + dx, y + dy])
     .filter(([nx, ny]) => nx !== x || ny !== y) as any
 }
-
-export const bfs = ([sx, sy]: [number, number], [tx, ty]: [number, number], map: Record<string, unknown>) => {
+export function* bfs<T>(map: Record<string, T>, [sx, sy]: [number, number], isWall: (val: T) => boolean = (val) => !!val): Generator<[[number, number], number], Record<string, [number, number]>> {
   const visited = new Set();
   let toVisit: Array<[number, number]> = [[sx, sy]];
+  const lengths = { [hash([sx, sy])]: 0 };
   const parents = {};
   while(true) {
     const pos = toVisit.shift();
-    if (!pos || (pos[0] == tx && pos[1] == ty)) break;
+    if (!pos) break;
+    const length = lengths[hash(pos)];
+    yield [pos, length];
     visited.add(hash(pos));
     const next = getNeighbors(...pos)
       .filter((n) => !visited.has(hash(n)))
-      .filter((n) => !(map[hash(n)] == '#'));
+      .filter((n) => !(isWall(map[hash(n)])));
     next.forEach((n) => {
-      parents[hash(n)] = pos
+      lengths[hash(n)] = length + 1;
+      parents[hash(n)] = pos;
     });
     toVisit = toVisit.concat(next);
   }
 
-  let curr: [number, number] = [tx, ty];
+  return parents;
+}
+export const backtrace = (parentsMap: Record<string, [number, number]>, [sx, sy]: [number, number]): Array<[number, number]> => {
+  let curr: [number, number] = [sx, sy];
   let path = [];
   while(curr) {
     path.push(curr);
-    curr = parents[hash(curr)];
+    curr = parentsMap[hash(curr)];
   }
-
-  return path.reverse();
+  return path;
 }
-
-
-
+export function searchSorted<T>(haystack: Array<T>, target: T, bounds?: [number, number]);
+export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target: T, bounds: [number, number]);
+export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target: T, bounds: [number, number] = [0, haystack.length]) {
+  const [min, max] = bounds;
+  if (max <= min) return null;
+  const pivot = Math.floor((max - min) / 2 + min);
+  console.log(min, max, pivot)
+  const candidate = typeof haystack === 'function' ? haystack(pivot) : haystack[pivot];
+  if (_.isEqual(candidate, target)) {
+    return pivot;
+  } else {
+    return searchSorted(haystack, target, [min, pivot])
+      ?? searchSorted(haystack, target, [pivot + 1, max])
+      ?? null;
+  }
+}
