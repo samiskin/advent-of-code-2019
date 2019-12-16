@@ -9,7 +9,7 @@ export const range = (num: number, skip: number = 0) =>
     .filter(i => i >= skip);
 export const range2 = (start: number, end: number) =>
   Array.from("x".repeat(end - start)).map((x, i) => i + start);
-export const nRange = (start, ...nums: number[]) => {
+export const nRange = (start, ...nums: number[]): Array<Array<number>> => {
   if (nums.length === 0) return range(start).map((i) => [i]);
   const nested = (nRange as any)(...nums);
   return _.flatMap(range(start), ((i) => nested.map(nest => [i, ...nest])));
@@ -39,7 +39,7 @@ export const print = (col: string, ...args) => {
   console.log(`\x1b[${getNum()}m`, ...args, `\x1b[${getNum('reset')}m`);
 }
 export const hash = ([x, y]) => `${x} ${y}`;
-export const printGrid = (map, overrides = {}) => {
+export const printGrid = (map, valOverrides = {}, posOverrides = {}) => {
   const points = Object.keys(map).filter((hash) => !!map[hash]).map((hash) => hash.split(' ').map((i) => parseInt(i)));
   const min_x = Math.min(...points.map(([x, y]) => x));
   const max_x = Math.max(...points.map(([x, y]) => x));
@@ -50,8 +50,13 @@ export const printGrid = (map, overrides = {}) => {
     let output = ''
     for (let x_base of range(max_x - min_x + 1)) {
       let [x, y] = [x_base + min_x, y_base + min_y];
-      const value = map[hash([x, y])] ?? ' ';
-      output += overrides[value] ?? value;
+      const posOverride = posOverrides[hash([x, y])];
+      if (posOverride) {
+        output += posOverride;
+      } else {
+        const value = map[hash([x, y])] ?? ' ';
+        output += valOverrides[value] ?? value;
+      }
     }
     console.log(output);
   }
