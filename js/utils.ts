@@ -77,7 +77,40 @@ export const gcd = (...nums: number[]) =>
 export const lcm = (...nums: number[]) =>
   nums.reduce((ans, n) => (n * ans) / gcd(ans, n));
 
+export const getNeighbors = (x: number, y: number): Array<[number, number]>  => {
+  return nRange(3, 3)
+    .map(([dx, dy]) => [dx - 1, dy - 1])
+    .filter(([dx, dy]) => Math.abs(dx) + Math.abs(dy) < 2)
+    .map(([dx, dy]) => [x + dx, y + dy])
+    .filter(([nx, ny]) => nx !== x || ny !== y) as any
+}
 
+export const bfs = ([sx, sy]: [number, number], [tx, ty]: [number, number], map: Record<string, unknown>) => {
+  const visited = new Set();
+  let toVisit: Array<[number, number]> = [[sx, sy]];
+  const parents = {};
+  while(true) {
+    const pos = toVisit.shift();
+    if (!pos || (pos[0] == tx && pos[1] == ty)) break;
+    visited.add(hash(pos));
+    const next = getNeighbors(...pos)
+      .filter((n) => !visited.has(hash(n)))
+      .filter((n) => !(map[hash(n)] == '#'));
+    next.forEach((n) => {
+      parents[hash(n)] = pos
+    });
+    toVisit = toVisit.concat(next);
+  }
+
+  let curr: [number, number] = [tx, ty];
+  let path = [];
+  while(curr) {
+    path.push(curr);
+    curr = parents[hash(curr)];
+  }
+
+  return path.reverse();
+}
 
 
 
