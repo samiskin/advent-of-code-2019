@@ -1,9 +1,8 @@
 //---------------------------------------------------------------------------------
-import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm } from "./utils";
+import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, searchSorted } from "./utils";
 console.clear();
 console.log("\n");
 //---------------------------------------------------------------------------------
-console.log("hi")
 
 const instr = `
 
@@ -68,8 +67,8 @@ const instr = `
 `
 
 const map: Record<string, [number, Record<string, number>]> = {};
-console.log(instr, '\n')
 
+// Create map
 instr.trim().split('\n').forEach((str) => {
   const [ left, right ] = str.split('=>').map((s) => s.trim());
   let mats = left.split(',').map((s) => s.trim().split(' ')) as any;
@@ -79,38 +78,8 @@ instr.trim().split('\n').forEach((str) => {
 
   map[rMat] = [rAmt, mats]
 })
-console.log(map)
-
-// const totalReqs = {};
-// const getReqs = (res, amt, tier = 0) => {
-//   console.log(" ".repeat(tier * 4), "Requesting", res, amt)
-//   const [ amtPerRes, mats ] = map[res];
-//   if (mats['ORE']) {
-//     totalReqs[res] = totalReqs[res] ?? 0;
-//     totalReqs[res] += amt;
-//     // console.log(Math.ceil(amt / amtPerRes) * mats['ORE'])
-//     // const overflow = (Math.ceil(amt / amtPerRes) - Math.floor(amt / amtPerRes)) * mats['ORE'];
-//     // totalOverflow += overflow;
-//     // return Math.max(Math.ceil(amt / amtPerRes), 1) * mats['ORE'];
-//   } else {
-//     Object.entries(mats).forEach(([mat, depAmt]) => {
-//       getReqs(mat, amt * depAmt, tier + 1);
-//     });
-//   }
-// }
-
-// getReqs('FUEL', 1);
-// console.log(totalReqs)
-
-// console.log(Object.entries(totalReqs).reduce((sum, [mat, deptAmt]) => {
-//   const [amtPerRes, mats ] = map[mat];
-//   return sum + Math.max(Math.ceil(deptAmt / amtPerRes), 1) * mats['ORE'];
-// }, 0));
-
-console.log("\n\n-----------\n\n")
 
 let overflow = {};
-let ore = 1000000000000;
 const getOre = (res, amt, tier = 0) => {
   if (res === 'ORE') return amt;
   const [ amtPerRes, mats ] = map[res];
@@ -130,30 +99,15 @@ const getOre = (res, amt, tier = 0) => {
     return sum + getOre(mat, remainder, tier + 1);
   }, 0);
 }
+console.log("1 Fuel:", getOre('FUEL', 1))
 
-let count = 0;
-let numJump = 3555 * 1000;
+let numJump = 3566 * 1000;
+let ore = 1000000000000;
 ore -= getOre('FUEL', numJump)
-count += numJump;
-
+let count = numJump;
 
 while (ore > 0) {
   count++;
-  console.log(ore)
   ore -= getOre('FUEL', 1);
 }
-console.log(count - 1)
-
-
-
-// console.log(getOre('FUEL', 1))
-// console.log(overflow)
-
-
-
-
-
-
-
-// console.log(getOre('AB', 2));
-// console.log("--")
+console.log("Max Fuel:", count - 1) // 3566577

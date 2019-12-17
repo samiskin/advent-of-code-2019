@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------
-import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout } from "./utils";
+import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, createProgram, runProgram } from "./utils";
 console.clear();
 console.log("\n");
 //---------------------------------------------------------------------------------
@@ -10,77 +10,23 @@ const input = "1,380,379,385,1008,2719,612378,381,1005,381,12,99,109,2720,1102,1
 const map = {};
 
 // const inputs = []
-const runProgram: any = function* (memOverrides = {}) {
-  const mem = input.split(',').map((a) => parseInt(a)).concat(range(2000).map(() => 0));
-  Object.entries(memOverrides).forEach(([key, val]) => {
-    mem[parseInt(key)] = val as number;
-  });
-
-  const digit = (num, i) => Math.floor(num / Math.pow(10,i - 1)) % 10;
-  const parseOp = (op) => [op % 100, digit(op, 3), digit(op, 4), digit(op, 5)];
-
-  const getAddr = (i, mode, base) => {
-    switch(mode) {
-      case 0: return mem[i];
-      case 1: return i;
-      case 2: return base + mem[i];
-      default: throw new Error("Invalid mode" + mode);
-    }
-  }
-  const getArgs = (op) => {
-    if ([3, 4, 9].includes(op)) return 2;
-    if ([5, 6].includes(op)) return 3;
-    return 4;
-  }
-
-  let base = 0;
-
-  for (let i = 0;;) {
-    const [op, ...modes] = parseOp(mem[i]);
-    if (op == 99) break;
-
-    const addrs = range(getArgs(op), 1)
-      .map((d) => getAddr(i + d, modes[d - 1], base));
-    const vals = addrs.map(addr => mem[addr]);
-    i += getArgs(op);
-    if (op === 1) {
-      mem[addrs[2]] = vals[0] + vals[1];
-    } else if (op === 2) {
-      mem[addrs[2]] = vals[0] * vals[1];
-    } else if (op === 3) {
-      mem[addrs[0]] = yield 'input';
-      yield;
-    } else if (op === 4) {
-      yield 'output';
-      yield vals[0];
-    } else if (op === 5) {
-      if (vals[0] != 0) i = vals[1];
-    } else if (op === 6) {
-      if (vals[0] == 0) i = vals[1];
-    } else if (op === 7) {
-      mem[addrs[2]] = vals[0] < vals[1] ? 1 : 0;
-    } else if (op === 8) {
-      mem[addrs[2]] = vals[0] == vals[1] ? 1 : 0;
-    } else if (op === 9) {
-      base += vals[0];
-    }
-  }
-}
-
 async function run() {
-  const program = runProgram({ '0': 2 })
+  const program = createProgram(input, { '0': 2 });
 
   const inputs = [-1, 0, 0, 0];
   let lastBall = null;
   let ballPos = null;
   let curPos = [null, null];
   while (true) {
-    const { value: ioType } = program.next('io');
-    if (!ioType) break;
-    if (ioType == 'output') {
-      const { value: x, done: done1 } = program.next('x'); program.next();
-      const { value: y, done: done2 } = program.next('y'); program.next();
-      const { value: t, done: done3 } = program.next('z');
+    const { type, value } = runProgram(program);
+    if (type === 'halt') break;
+    if (type == 'output') {
+      let x = value;
+      let y = runProgram(program).value;
+      let t = runProgram(program).value;
+      // const { value: x, done: done1 } = program.next('x'); program.next();
+      // const { value: y, done: done2 } = program.next('y'); program.next();
+      // const { value: t, done: done3 } = program.next('z');
       if (x === -1 && y === 0) {
         console.log("Score: ", t);
       } else {
@@ -96,24 +42,21 @@ async function run() {
           curPos = [x, y];
         }
       }
-      if (done1 || done2 || done3) {
-        break;
-      }
     } else {
       const ballDir = ballPos[0] - lastBall[0];
       const diff = curPos[0] - (ballPos[0] + ballDir);
 
       if (ballPos[1] == curPos[1] - 1 && ballPos[0] - curPos[0] == 0) {
-        program.next(0);
+        program.inputQueue.push(0);
       } else if (diff < 0) {
-        program.next(1);
+        program.inputQueue.push(1);
       } else if (diff > 0) {
-        program.next(-1);
+        program.inputQueue.push(-1);
       } else {
-        program.next(0);
+        program.inputQueue.push(0);
       }
     }
   }
 }
 
-run();
+run(); // Score: 22225

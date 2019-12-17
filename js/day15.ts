@@ -173,7 +173,7 @@ let maxLen = 0;
 while (true) {
   const { value, done } = bfsGen.next();
   if (done) break;
-  const [ pos, len ] = value;
+  const [ pos, len ] = value as any;
   maxLen = Math.max(maxLen, len as number);
 }
 

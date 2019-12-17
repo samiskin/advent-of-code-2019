@@ -132,3 +132,104 @@ export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target:
       ?? null;
   }
 }
+
+
+
+
+
+export type Program = {
+  i: number;
+  base: number;
+  mem: Array<number>;
+  inputQueue: Array<number>;
+}
+
+export const createProgram = (source: string, memOverrides = {}): Program => {
+  const base = {
+    i: 0,
+    base: 0,
+    mem: source.split(',').map((a) => parseInt(a)).concat(range(2000).map(() => 0)),
+    inputQueue: [],
+  };
+  Object.entries(memOverrides).forEach(([key, val]) => {
+    base.mem[parseInt(key)] = val as number;
+  });
+  return base;
+};
+
+type ProgramResult = {
+  type: 'input' | 'output' | 'halt';
+  value?: number;
+};
+
+const digit = (num, i) => Math.floor(num / Math.pow(10,i - 1)) % 10;
+const parseOp = (op) => [op % 100, digit(op, 3), digit(op, 4), digit(op, 5)];
+export const runProgram = (prog: Program): ProgramResult => {
+  const { mem, inputQueue } = prog;
+
+  const getAddr = (i, mode, base) => {
+    switch(mode) {
+      case 0: return prog.mem[i];
+      case 1: return i;
+      case 2: return base + prog.mem[i];
+      default: throw new Error("Invalid mode" + mode);
+    }
+  }
+  const getArgs = (op) => {
+    if ([3, 4, 9].includes(op)) return 2;
+    if ([5, 6].includes(op)) return 3;
+    if ([99].includes(op)) return 0;
+    return 4;
+  }
+
+  while (true) {
+    const { i } = prog;
+    const [op, ...modes] = parseOp(mem[i]);
+    if (op == 99) break;
+
+    const addrs = range(getArgs(op), 1)
+      .map((d) => getAddr(i + d, modes[d - 1], prog.base));
+    const vals = addrs.map(addr => mem[addr] || 0);
+    prog.i += getArgs(op);
+    if (op === 1) {
+      mem[addrs[2]] = vals[0] + vals[1];
+    } else if (op === 2) {
+      mem[addrs[2]] = vals[0] * vals[1];
+    } else if (op === 3) {
+      if (inputQueue.length === 0) {
+        prog.i -= getArgs(op);
+        return { type: 'input' };
+      }
+
+      mem[addrs[0]] = prog.inputQueue.shift();
+    } else if (op === 4) {
+      return { type: 'output', value: vals[0] };
+    } else if (op === 5) {
+      if (vals[0] != 0) prog.i = vals[1];
+    } else if (op === 6) {
+      if (vals[0] == 0) prog.i = vals[1];
+    } else if (op === 7) {
+      mem[addrs[2]] = vals[0] < vals[1] ? 1 : 0;
+    } else if (op === 8) {
+      mem[addrs[2]] = vals[0] == vals[1] ? 1 : 0;
+    } else if (op === 9) {
+      prog.base += vals[0];
+    }
+  }
+  return { type: 'halt' };
+}
+
+export const getMapPoints = (map) =>
+  Object.keys(map).filter((hash) => !!map[hash]).map((hash) => hash.split(' ').map((i) => parseInt(i)));
+
+export const getDimensions = (map) => {
+  const points = getMapPoints(map);
+  const min_x = Math.min(...points.map(([x, y]) => x));
+  const max_x = Math.max(...points.map(([x, y]) => x));
+  const min_y = Math.min(...points.map(([x, y]) => y));
+  const max_y = Math.max(...points.map(([x, y]) => y));
+  return [min_x - max_x]
+}
+
+export const addPos = (p1: [number, number], p2: [number, number]): [number, number] => 
+  [p1[0] + p2[0], p1[1] + p2[1]];
