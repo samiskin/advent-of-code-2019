@@ -133,10 +133,6 @@ export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target:
   }
 }
 
-
-
-
-
 export type Program = {
   i: number;
   base: number;
@@ -219,8 +215,10 @@ export const runProgram = (prog: Program): ProgramResult => {
   return { type: 'halt' };
 }
 
-export const getMapPoints = (map) =>
-  Object.keys(map).filter((hash) => !!map[hash]).map((hash) => hash.split(' ').map((i) => parseInt(i)));
+export const hashToPoint = (hash: string) =>
+  hash.split(' ').map((i) => parseInt(i)) as [number, number];
+export const getMapPoints = (map): Array<[number, number]> =>
+  Object.keys(map).filter((hash) => !!map[hash]).map(hashToPoint) as any;
 
 export const getDimensions = (map) => {
   const points = getMapPoints(map);
@@ -233,3 +231,63 @@ export const getDimensions = (map) => {
 
 export const addPos = (p1: [number, number], p2: [number, number]): [number, number] => 
   [p1[0] + p2[0], p1[1] + p2[1]];
+
+const heapify = <T>(arr: Array<T>, isHigher = (a, b) => a > b, i: number = 0) => {
+  const curr = arr[i];
+  const [ left, right ] = [ 2 * i + 1, 2 * i + 2];
+  if (arr[left] && isHigher(arr[left], curr)) {
+    arr[i] = arr[left];
+    arr[left] = curr;
+    heapify(arr, isHigher, left);
+  } else if (arr[right] && isHigher(arr[right], curr)) {
+    arr[i] = arr[right];
+    arr[right] = curr;
+    heapify(arr, isHigher, right);
+  }
+}
+
+export class PriorityQueue<T> {
+  elements: Array<T>;
+  comparator: (a: T, b: T) => boolean;
+  constructor(comparator: (a: T, b: T) => boolean = (a, b) => a > b, elements: Array<T> = []) {
+    this.elements = elements;
+    this.comparator = comparator;
+  }
+
+  top = () => this.elements[0];
+
+  push = (e: T) => {
+    this.elements.push(e);
+    let child = this.elements.length - 1;
+    let parent = Math.floor((child - 1) / 2);
+    while (this.elements[parent] && this.comparator(e, this.elements[parent])) {
+      this.elements[child] = this.elements[parent];
+      this.elements[parent] = e;
+      child = parent;
+      parent = Math.floor((child - 1) / 2);
+    }
+  }
+
+  pop = (): T => {
+    const top = this.elements[0];
+    this.elements[0] = this.elements[this.elements.length - 1]
+    this.elements.pop();
+    heapify(this.elements, this.comparator);
+    return top;
+  }
+
+
+  print = () => {
+    const toIndex = (depth: number, offset: number) => (Math.pow(2, depth) + offset) - 1;
+    const toLevel = (i: number) => {
+      const depth = Math.floor(Math.log2(i + 1));
+      const offset = (i + 1) % Math.pow(2, depth);
+      return [depth, offset];
+    }
+    for (let depth = 0; depth < toLevel(this.elements.length)[0]; depth++) {
+      console.log(range(Math.pow(2, depth)).map((offset) => this.elements[toIndex(depth, offset)]));
+    }
+  }
+}
+
+
