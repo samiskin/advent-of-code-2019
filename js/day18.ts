@@ -88,14 +88,17 @@ const input = `
 #################################################################################
 `;
 const inputTest = `
-########################
-#f.D.E.e.C.b.A.@.a.B.c.#
-######################.#
-#d.....................#
-########################
-`
+#################
+#i.G..c...e..H.p#
+########.########
+#j.A..b...f..D.o#
+########@########
+#k.E..a...g..B.n#
+########.########
+#l.F..d...h..C.m#
+#################`
 
-const map: Record<string, string> = input.trim().split('\n').reduce((fullMap, line, y) => ({ ...fullMap, ...line.split('').reduce((obj, char, x) => ({ ...obj, [hash([x, y])]: char}), {}) }), {});
+const map: Record<string, string> = inputTest.trim().split('\n').reduce((fullMap, line, y) => ({ ...fullMap, ...line.split('').reduce((obj, char, x) => ({ ...obj, [hash([x, y])]: char}), {}) }), {});
 
 const isKey = (char: string) => 'a' <= char && 'z' >= char;
 const isDoor = (char: string) => 'A' <= char && 'Z' >= char;
@@ -136,25 +139,34 @@ const allKeys = getMapPoints(map).filter(([x, y]) => {
   return 'a' <= char && 'z' >= char
 });
 
-let getAllNeighbors = (startKey: string, keys: Set<string>, neighborList = {}, curDistance = 0, visited = new Set()) => {
-  let newNeighbors = graph[startKey];
-  for (let neighbor of Object.keys(newNeighbors)) {
-    const nChar = map[neighbor];
-    if (isDoor(nChar) || keys.has(nChar)) continue;
-    if (!neighborList[neighbor]) {
-      neighborList[neighbor] = newNeighbors[neighbor] + curDistance;
-    } else {
-      neighborList[neighbor] = Math.min(neighborList[neighbor], newNeighbors[neighbor] + curDistance);
+let getAllNeighbors = (startKey: string, keys: Set<string> = new Set()) => {
+  const visited = new Set();
+  const toVisitPq = new PriorityQueue<[string, number]>(([pa, da], [pb, db]) => da < db);
+  toVisitPq.push([startKey, 0]);
+
+  // console.log("----",map[startKey],"----")
+  // console.log("Starting from ", map[startKey], "with", [...keys]);
+  let distances = {};
+  while (toVisitPq.length > 0) {
+    const [pos, dist] = toVisitPq.pop();
+    if (visited.has(pos)) continue;
+    // print('g', "Popping", map[pos], dist, visited.has(pos))
+    visited.add(pos);
+    if (isKey(map[pos]) && !keys.has(map[pos])) {
+      distances[pos] = dist;
+      continue;
+    }
+
+    const neighbors = graph[pos];
+    const newNeighbors = Object.keys(neighbors)
+      .filter((n) => !visited.has(n))
+      .filter((n) => !(isDoor(map[n]) && !keys.has(map[n].toLowerCase())))
+    for (let n of newNeighbors) {
+      // print('y', "Pushing", map[n], dist + neighbors[n], visited.has(n))
+      toVisitPq.push([n, dist + neighbors[n]]);
     }
   }
-  Object.keys(newNeighbors).forEach((key) => {
-    const nChar = map[key];
-    if (!visited.has(nChar) && (isKey(nChar) || (isDoor(nChar) && keys.has(nChar.toLowerCase())))) {
-      visited.add(nChar);
-      getAllNeighbors(key, keys, neighborList, newNeighbors[key] + curDistance, visited);
-    }
-  });
-  return neighborList;
+  return distances;
 }
 
 type PQState = {
@@ -164,24 +176,65 @@ type PQState = {
 }
 
 let toVisit = new PriorityQueue<PQState>(
-  (a, b) => a.dist < b.dist
+  (a, b) => (a.dist < b.dist) || (a.dist === b.dist && a.keys.length > b.keys.length)
 );
 toVisit.push({ pos: hash(startPos), dist: 0, keys: []});
-let count = 0;
+let minPath = null;
 while (toVisit.top() !== undefined) {
   const { pos, dist, keys } = toVisit.pop();
-  count++;
-  if (keys.length === allKeys.length) {
+  if (keys.length > 5) break;
+  console.log("Running with", dist, map[pos], keys, dist)
+
+  const neighbors = getAllNeighbors(pos, new Set(keys));
+  if (keys.length == allKeys.length) {
     console.log("Distance: ", dist);
+    minPath = keys;
     console.log(keys)
     break;
   }
 
-  const neighbors = getAllNeighbors(pos, new Set(keys));
-
+  console.log(_.mapKeys(neighbors, (_, k) => map[k]));
   for (let n of Object.keys(neighbors)) {
     let nextKeys = [...keys, map[n]];
     toVisit.push({ pos: n, dist: dist + neighbors[n], keys: nextKeys });
   }
 }
-console.log(count)
+
+const charToPos = (char: string) => hash(getMapPoints(map).find(([x, y]) => map[hash([x, y])] == char));
+const getPathLength = (path) => {
+  let keys = new Set<string>();
+  let sum = 0;
+  let start = '@';
+  for (let char of path) {
+    // if (char === 'h') {
+      let length = getAllNeighbors(charToPos(start), keys)[charToPos(char)];
+      console.log(start,"to",char,":",length);
+      sum += length;
+    // }
+    keys.add(char);
+    start = char;
+  }
+  console.log("end sum", sum);
+}
+console.log(inputTest)
+// @ to a : 3
+// a to f : 6
+// f to b : 4
+// b to j : 5
+// j to g : 11
+// g to n : 5
+// n to h : 11
+// h to d : 4
+// d to l : 5
+// l to o : 18
+// o to e : 11
+// e to p : 5
+// p to c : 9
+// c to i : 5
+// i to k : 18 <- outputs 66
+// k to m : 16 <- outputs 28
+// getPathLength('a, f, b, j, g, n, h, d, l, o, e, p, c, i, k, m'.split(',').map((s) => s.trim()));
+// getPathLength('a, f, b, j, g, n, h, d, l, o, e, p, c, i, k, m'.split(',').map((s) => s.trim()));
+
+// console.log(getAllNeighbors(charToPos('e'), new Set(['b','a','c','d','f','e'])))
+

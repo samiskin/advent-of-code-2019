@@ -270,23 +270,30 @@ export class PriorityQueue<T> {
 
   push = (e: T) => {
     this.elements.push(e);
-    let child = this.elements.length - 1;
-    let parent = Math.floor((child - 1) / 2);
-    while (this.elements[parent] && this.comparator(e, this.elements[parent])) {
-      this.elements[child] = this.elements[parent];
-      this.elements[parent] = e;
-      child = parent;
-      parent = Math.floor((child - 1) / 2);
-    }
+    this.elements.sort((a, b) => this.comparator(a, b) ? 1 : -1);
   }
+  pop = () => {
+    return this.elements.pop();
+  }
+  // push = (e: T) => {
+  //   this.elements.push(e);
+  //   let child = this.elements.length - 1;
+  //   let parent = Math.floor((child - 1) / 2);
+  //   while (this.elements[parent] && this.comparator(e, this.elements[parent])) {
+  //     this.elements[child] = this.elements[parent];
+  //     this.elements[parent] = e;
+  //     child = parent;
+  //     parent = Math.floor((child - 1) / 2);
+  //   }
+  // }
 
-  pop = (): T => {
-    const top = this.elements[0];
-    this.elements[0] = this.elements[this.elements.length - 1]
-    this.elements.pop();
-    heapify(this.elements, this.comparator);
-    return top;
-  }
+  // pop = (): T => {
+  //   const top = this.elements[0];
+  //   this.elements[0] = this.elements[this.elements.length - 1]
+  //   this.elements.pop();
+  //   heapify(this.elements, this.comparator);
+  //   return top;
+  // }
 
   print = () => {
     const toIndex = (depth: number, offset: number) => (Math.pow(2, depth) + offset) - 1;
@@ -299,5 +306,9 @@ export class PriorityQueue<T> {
     for (let depth = 0; depth < maxDepth; depth++) {
       console.log(range(Math.pow(2, depth)).map((offset) => this.elements[toIndex(depth, offset)]));
     }
+  }
+
+  get length() {
+    return this.elements.length;
   }
 }
