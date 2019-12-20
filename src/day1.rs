@@ -1,10 +1,9 @@
-pub fn run(strings: &str) -> std::io::Result<String> {
-    let sum = strings
+pub fn run(strings: &str) -> i32 {
+    strings
         .lines()
         .map(|line| line.parse::<i32>().unwrap())
         .map(|w| get_fuel(w))
-        .fold(0, |f, s| s + f);
-    Ok(sum.to_string())
+        .fold(0, |f, s| s + f)
 }
 
 fn get_fuel(m: i32) -> i32 {
@@ -22,20 +21,13 @@ mod tests {
 
     #[test]
     fn test_add() {
-        // assert_eq!(get_fuel(12), 2);
-        // assert_eq!(get_fuel(14), 2);
-        // assert_eq!(get_fuel(1969), 654);
-        // assert_eq!(get_fuel(100756), 33583);
         assert_eq!(get_fuel(100756), 50346)
     }
 
     #[test]
-    fn test_run_day1() {
-        let input = utils::read_file("day1.in").unwrap();
-        print!("{}", input);
-        let output = run(&input).unwrap();
-        let out_file = utils::read_file("day1.out").unwrap();
-        let target_output = out_file.trim_end();
-        assert_eq!(output, target_output);
+    fn test_day1_run() {
+        let input = utils::read_file("res/day1.in").unwrap();
+        let output = run(&input);
+        assert_eq!(output, 5194211);
     }
 }

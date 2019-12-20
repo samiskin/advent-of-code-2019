@@ -38,6 +38,12 @@ struct Program {
     input_queue: VecDeque<i32>,
 }
 
+enum PResult {
+    Output(i32),
+    Input(),
+    Halt(i32)
+}
+
 impl Program {
     pub fn new(source: &str) -> Program {
         Program {
@@ -51,13 +57,11 @@ impl Program {
             input_queue: VecDeque::new(),
         }
     }
-    fn exec(&mut self, inputs: Vec<i32>) -> Option<i32> {
-        self.input_queue.extend(inputs.into_iter());
-
+    fn exec(&mut self) -> PResult {
         loop {
             let (op, modes) = parse_op(self.mem[self.i]);
             if op == 99 {
-                return None;
+                return PResult::Halt(self.mem[0]);
             }
             let addrs: Vec<usize> = (0..num_args(op) - 1)
                 .map(|d| {
@@ -94,15 +98,17 @@ impl Program {
                         Some(input) => self.mem[addrs[0]] = input,
                         None => {
                             self.i -= num_args(op) as usize;
-                            return None;
+                            return PResult::Input();
                         }
                     }
                 }
-                4 => return Some(vals[0]),
-
+                4 => return PResult::Output(vals[0]),
                 _ => panic!("Invalid opcode"),
             }
         }
+    }
+    fn input(&mut self, val: i32) {
+        self.input_queue.push_back(val);
     }
 }
 
@@ -111,17 +117,19 @@ pub fn run(program: &str, inputs: Vec<i32>) -> i32 {
     let mut carry = 0;
     let mut any_done = false;
     for (i, prog) in programs.iter_mut().enumerate() {
-        prog.exec([inputs[i]].to_vec());
+        prog.input(inputs[i]);
     }
     while !any_done {
         for (i, prog) in programs.iter_mut().enumerate() {
-            let outputs = prog.exec([carry].to_vec());
+            prog.input(carry);
+            let outputs = prog.exec();
             match outputs {
-                Some(val) => carry = val,
-                None => {
+                PResult::Output(val) => carry = val,
+                PResult::Halt(_) => {
                     any_done = true;
                     break;
                 }
+                _ => ()
             }
         }
     }

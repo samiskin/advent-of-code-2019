@@ -101,7 +101,7 @@ var input = `
 119067
 143566
 134224
-`
+`;
 
 const masses = input.trim().split('\n').map((s) => parseInt(s));
 

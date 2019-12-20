@@ -61,10 +61,10 @@ const getVisible = (sx, sy) => {
   );
   return Object.entries(sortedByDist).sort(
     ([a], [b]) => parseFloat(a) - parseFloat(b)
-  );
+  ) as Array<[string, Array<[number, number]>]>;
 };
 
-const best = _.maxBy(asteroids, ([x, y]) => getVisible(x, y).length);
+const best: [number, number] = _.maxBy(asteroids, ([x, y]) => getVisible(x, y).length);
 const visibles = getVisible(best[0], best[1]);
 console.log(best, visibles.length);
 
@@ -74,6 +74,6 @@ for (let count = 0; count < 10; ) {
     if (count == 200) {
       console.log(group[0]);
     }
-    group.shift(1);
+    group.shift();
   }
 }

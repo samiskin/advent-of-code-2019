@@ -67,50 +67,15 @@ pub fn part2(input: &str) -> i32 {
 mod tests {
     use super::*;
     use crate::utils;
-
-    #[test]
-    fn day6_test1_simple() {
-        let input = "COM)B
-B)C
-C)D
-D)E
-E)F
-B)G
-G)H
-D)I
-E)J
-J)K
-K)L";
-        assert_eq!(part1(input), 42);
-    }
-
     #[test]
     fn day6_test1_real() {
-        let input = utils::read_file("day6.in").unwrap();
+        let input = utils::read_file("res/day6.in").unwrap();
         assert_eq!(part1(&input), 247089);
     }
 
     #[test]
-    fn day6_test2_simple() {
-        let input = "COM)B
-B)C
-C)D
-D)E
-E)F
-B)G
-G)H
-D)I
-E)J
-J)K
-K)L
-K)YOU
-I)SAN";
-        assert_eq!(part2(&input), 4);
-    }
-
-    #[test]
     fn day6_test2_real() {
-        let input = utils::read_file("day6.in").unwrap();
+        let input = utils::read_file("res/day6.in").unwrap();
         assert_eq!(part2(&input), 442);
     }
 }

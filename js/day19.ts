@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------
-import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, pointsFromHash } from "./utils";
+import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint } from "./utils";
 console.clear();
 console.log("\n");
 //---------------------------------------------------------------------------------

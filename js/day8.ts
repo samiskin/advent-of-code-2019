@@ -18,7 +18,8 @@ for (let z of range(depth)) {
 }
 
 const [_zeros, ones, twos] = (_.minBy(layers, ([z, o, t]) => z));
-console.log(ones * twos) // 1806
+console.log("layers", layers.find(([z]) => z == _zeros));
+console.log(ones, "*", twos, "=", ones * twos) // 1806
 
 let output = '';
 for (let [y, x] of nRange(height, width)) {

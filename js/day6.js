@@ -1660,7 +1660,7 @@ console.log(sanIndex);
 console.log(i)
 console.log(i + sanIndex - 2);
 
-console.log(setSan)
+// console.log(setSan)
 
 
 

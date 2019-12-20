@@ -49,7 +49,7 @@ mod tests {
     }
 
     #[test]
-    fn test_run_day4() {
-        assert_eq!(run(372037, 905157), 0);
+    fn test_day4_run() {
+        assert_eq!(run(372037, 905157), 299);
     }
 }

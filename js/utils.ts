@@ -1,8 +1,10 @@
 export const _ = require("lodash");
+
 export const eq = (a, b) => a === b;
 export const neq = (a, b) => a !== b;
 export const gt = (a, b) => a > b;
 export const lt = (a, b) => a < b;
+
 export const range = (num: number, skip: number = 0) =>
   Array.from("x".repeat(num))
     .map((x, i) => i)
@@ -14,6 +16,7 @@ export const nRange = (start, ...nums: number[]): Array<Array<number>> => {
   const nested = (nRange as any)(...nums);
   return _.flatMap(range(start), ((i) => nested.map(nest => [i, ...nest])));
 };
+
 export const print = (col: string, ...args) => {
   const getNum = (color = col) => {
     switch(color) {
@@ -38,7 +41,9 @@ export const print = (col: string, ...args) => {
   }
   console.log(`\x1b[${getNum()}m`, ...args, `\x1b[${getNum('reset')}m`);
 }
+
 export const hash = ([x, y]) => `${x} ${y}`;
+
 export const printGrid = (map, valOverrides = {}, posOverrides = {}) => {
   const points = Object.keys(map).filter((hash) => !!map[hash]).map((hash) => hash.split(' ').map((i) => parseInt(i)));
   const min_x = Math.min(...points.map(([x, y]) => x));
@@ -61,8 +66,11 @@ export const printGrid = (map, valOverrides = {}, posOverrides = {}) => {
     console.log(output);
   }
 }
+
 export const timeout = (time) => new Promise((resolve) => setTimeout(resolve, time));
+
 export const clamp = (val, lower, upper) => Math.max(Math.min(val, upper), lower);
+
 export const gcd = (...nums: number[]) =>
   nums.reduce((ans, n) => {
     let x = Math.abs(ans);
@@ -84,6 +92,7 @@ export const getNeighbors = (x: number, y: number): Array<[number, number]>  => 
     .map(([dx, dy]) => [x + dx, y + dy])
     .filter(([nx, ny]) => nx !== x || ny !== y) as any
 }
+
 export function* bfs<T>(map: Record<string, T>, [sx, sy]: [number, number], isWall: (val: T) => boolean = (val) => !!val): Generator<[[number, number], number], Record<string, [number, number]>> {
   const visited = new Set();
   let toVisit: Array<[number, number]> = [[sx, sy]];
@@ -107,6 +116,7 @@ export function* bfs<T>(map: Record<string, T>, [sx, sy]: [number, number], isWa
 
   return parents;
 }
+
 export const backtrace = (parentsMap: Record<string, [number, number]>, [sx, sy]: [number, number]): Array<[number, number]> => {
   let curr: [number, number] = [sx, sy];
   let path = [];
@@ -116,6 +126,7 @@ export const backtrace = (parentsMap: Record<string, [number, number]>, [sx, sy]
   }
   return path;
 }
+
 export function searchSorted<T>(haystack: Array<T>, target: T, bounds?: [number, number]);
 export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target: T, bounds: [number, number]);
 export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target: T, bounds: [number, number] = [0, haystack.length]) {
@@ -217,6 +228,7 @@ export const runProgram = (prog: Program): ProgramResult => {
 
 export const hashToPoint = (hash: string) =>
   hash.split(' ').map((i) => parseInt(i)) as [number, number];
+
 export const getMapPoints = (map): Array<[number, number]> =>
   Object.keys(map).filter((hash) => !!map[hash]).map(hashToPoint) as any;
 
@@ -276,18 +288,16 @@ export class PriorityQueue<T> {
     return top;
   }
 
-
   print = () => {
     const toIndex = (depth: number, offset: number) => (Math.pow(2, depth) + offset) - 1;
     const toLevel = (i: number) => {
-      const depth = Math.floor(Math.log2(i + 1));
+      const depth = Math.ceil(Math.log2(i + 1));
       const offset = (i + 1) % Math.pow(2, depth);
       return [depth, offset];
     }
-    for (let depth = 0; depth < toLevel(this.elements.length)[0]; depth++) {
+    const maxDepth = toLevel(this.elements.length - 1)[0];
+    for (let depth = 0; depth < maxDepth; depth++) {
       console.log(range(Math.pow(2, depth)).map((offset) => this.elements[toIndex(depth, offset)]));
     }
   }
 }
-
-

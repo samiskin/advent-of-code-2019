@@ -33,7 +33,6 @@ fn cmds_to_points(cmds: &str) -> Vec<(i32, i32)> {
 }
 
 fn get_intersections(dirs_a: &str, dirs_b: &str) -> HashMap<(i32, i32), i32> {
-
     let mut distances_a: HashMap<(i32, i32), i32> = HashMap::new();
     let mut distances_b: HashMap<(i32, i32), i32> = HashMap::new();
 
@@ -75,9 +74,41 @@ pub fn run(program: &str) -> std::io::Result<String> {
     let min = intersections
         .iter()
         .filter(|((x, y), dist)| *x != 0 || *y != 0)
-        // .fold(std::i32::MAX, |prev, ((x, y), dist)| cmp::min(prev, x.abs() + y.abs()));
         .fold(std::i32::MAX, |prev, ((x, y), dist)| cmp::min(prev, *dist));
     Ok(min.to_string())
+}
+
+
+fn get_step(dir: &char) -> (i32, i32) {
+    match dir {
+        'R' => (1, 0),
+        'L' => (-1, 0),
+        'U' => (0, 1),
+        'D' => (0, -1),
+        _ => panic!("Invalid direction"),
+    }
+}
+fn parse_cmd(cmd: &str) -> (char, i32) {
+    let mut chars_iter = cmd.chars();
+    let dir = chars_iter.next().unwrap();
+    let offset = chars_iter.collect::<String>().parse::<i32>().unwrap();
+    (dir, offset)
+}
+fn get_path_points(cmds: &Vec<(char, i32)>) -> Vec<(i32, i32)> {
+    cmds.iter().fold(vec![(0, 0)], |mut path, (dir, len)| {
+        let (dx, dy) = get_step(dir);
+        for i in 1..=*len {
+            let (sx, sy) = path.last().unwrap().clone();
+            path.push((sx + dx, sy + dy));
+        }
+        path
+    })
+}
+pub fn run_new(program: &str) -> i32 {
+    let mut lines = program.lines().map(|s| s.split(',').map(parse_cmd).collect());
+    let (dirs_a, dirs_b) = (lines.next().unwrap(), lines.next().unwrap());
+    get_path_points(&dirs_a);
+    4
 }
 
 #[cfg(test)]
@@ -85,44 +116,10 @@ mod tests {
     use super::*;
     use crate::utils;
 
-    // #[test]
-    // fn test_get_intersections() {
-    //     assert_eq!(
-    //         get_intersections("R8,U5,L5,D3", "U7,R6,D4,L4"),
-    //         [(6, 5), (3, 3)]
-    //     );
-    // }
-
     #[test]
-    fn test_cmd_to_offsets() {
-        assert_eq!(cmd_to_offsets("R1"), [(1, 0)]);
-        assert_eq!(cmd_to_offsets("L4"), [(-1, 0), (-2, 0), (-3, 0), (-4, 0)]);
-    }
-
-    #[test]
-    fn test_simple() {
-        let cases = [
-            ["R8,U5,L5,D3\nU7,R6,D4,L4", "6"],
-            [
-                "R75,D30,R83,U83,L12,D49,R71,U7,L72\nU62,R66,U55,R34,D71,R55,D58,R83",
-                "159",
-            ],
-            [
-                "R98,U47,R26,D63,R33,U87,L62,D20,R33,U53,R51\nU98,R91,D20,R16,D67,R40,U7,R15,U6,R7",
-                "135",
-            ],
-        ];
-        for case in cases.iter() {
-            assert_eq!(run(case[0]).unwrap(), case[1]);
-        }
-    }
-
-    #[test]
-    fn test_run() {
-        let input = utils::read_file("day3.in").unwrap();
+    fn test_day3_run() {
+        let input = utils::read_file("res/day3.in").unwrap();
         let output = run(&input).unwrap();
-        let out_file = utils::read_file("day3.out").unwrap();
-        let target_output = out_file.trim_end();
-        assert_eq!(output, target_output);
+        assert_eq!(output, "6084");
     }
 }

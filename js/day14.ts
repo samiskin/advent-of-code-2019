@@ -5,7 +5,6 @@ console.log("\n");
 //---------------------------------------------------------------------------------
 
 const instr = `
-
 11 TDFGK, 1 LKTZ => 5 DMLM
 2 PLWS, 10 CQRWX, 1 DQRM, 1 DXDTM, 1 GBNH, 5 FKPL, 1 JCSDM => 4 LMPH
 2 FXBZT, 1 VRZND => 5 QKCQW
