@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------
-import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint, PriorityQueue } from "./utils";
+import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint, PriorityQueue, bfsV2, backtrack, TinyQueue, bfsPq } from "./utils";
 console.clear();
 console.log("\n");
 //---------------------------------------------------------------------------------
@@ -98,143 +98,90 @@ const inputTest = `
 #l.F..d...h..C.m#
 #################`
 
-const map: Record<string, string> = inputTest.trim().split('\n').reduce((fullMap, line, y) => ({ ...fullMap, ...line.split('').reduce((obj, char, x) => ({ ...obj, [hash([x, y])]: char}), {}) }), {});
+const map: Record<string, string> = input
+  .trim()
+  .split("\n")
+  .reduce(
+    (fullMap, line, y) => ({
+      ...fullMap,
+      ...line
+        .split("")
+        .reduce((obj, char, x) => ({ ...obj, [hash([x, y])]: char }), {})
+    }),
+    {}
+  );
 
 const isKey = (char: string) => 'a' <= char && 'z' >= char;
 const isDoor = (char: string) => 'A' <= char && 'Z' >= char;
-const keyOrDoor = getMapPoints(map).filter(([x, y]) => !['#', '.'].includes(map[hash([x, y])]))
-const graph = keyOrDoor.reduce((graph, [sx, sy]) => {
-  const startKey = hash([sx, sy]);
-  graph[startKey] = {};
+const keyPoints = getMapPoints(map).filter(([x, y]) => isKey(map[hash([x, y])]));
+const keyPos = (key: string) => getMapPoints(map).find(([x, y]) => map[hash([x, y])] == key);
+const startPos = keyPos('@');
 
-  const visited = new Set();
-  let toVisit: Array<[number, number]> = [[sx, sy]];
-  const lengths = { [hash([sx, sy])]: 0 };
-  while(true) {
-    const pos = toVisit.shift();
-    if (!pos) break;
-    const key = hash(pos);
-    const length = lengths[key];
-    visited.add(key);
-    const char = map[key];
-    if (key !== startKey && (isKey(char) || isDoor(char))) {
-      graph[startKey][key] = length;
-    } else {
-      const next = getNeighbors(...pos)
-        .filter((n) => !visited.has(hash(n)))
-        .filter((n) => !(map[hash(n)] === '#'));
-      next.forEach((n) => {
-        lengths[hash(n)] = length + 1;
-      });
-      toVisit = toVisit.concat(next);
-    }
+const startTime = Date.now();
+
+
+type Graph = Record<string, Record<string, {
+  pos: [number, number],
+  key: string,
+  dist: number,
+  requiredKeys: Array<string>,
+}>>
+const graph: Graph = keyPoints.concat([startPos]).reduce((grid, pos) => {
+  grid[hash(pos)] = {};
+  const data = bfsV2({ map, start: pos, isWall: (v) => v === '#' });
+  for (let otherKey of keyPoints.filter((p) => p[0] !== pos[0] || p[1] !== pos[1])) {
+    const path = backtrack(data, otherKey);
+    const doors = path.filter((pos) => isDoor(map[hash(pos)]));
+    grid[hash(pos)][hash(otherKey)] = {
+      pos: otherKey,
+      key: map[hash(otherKey)],
+      dist: data[hash(otherKey)].length,
+      requiredKeys: doors.map((pos) => map[hash(pos)].toLowerCase()),
+    };
   }
-  return graph
+  return grid
 }, {});
 
-const startPos = getMapPoints(map).find(([x, y]) => map[hash([x, y])] == '@');
-let isWall = (char: string) => char === '#' || ('A' <= char && 'Z' >= char);
-const allKeys = getMapPoints(map).filter(([x, y]) => {
-  let char = map[hash([x, y])]
-  return 'a' <= char && 'z' >= char
-});
 
-let getAllNeighbors = (startKey: string, keys: Set<string> = new Set()) => {
-  const visited = new Set();
-  const toVisitPq = new PriorityQueue<[string, number]>(([pa, da], [pb, db]) => da < db);
-  toVisitPq.push([startKey, 0]);
 
-  // console.log("----",map[startKey],"----")
-  // console.log("Starting from ", map[startKey], "with", [...keys]);
-  let distances = {};
-  while (toVisitPq.length > 0) {
-    const [pos, dist] = toVisitPq.pop();
-    if (visited.has(pos)) continue;
-    // print('g', "Popping", map[pos], dist, visited.has(pos))
-    visited.add(pos);
-    if (isKey(map[pos]) && !keys.has(map[pos])) {
-      distances[pos] = dist;
-      continue;
-    }
-
-    const neighbors = graph[pos];
-    const newNeighbors = Object.keys(neighbors)
-      .filter((n) => !visited.has(n))
-      .filter((n) => !(isDoor(map[n]) && !keys.has(map[n].toLowerCase())))
-    for (let n of newNeighbors) {
-      // print('y', "Pushing", map[n], dist + neighbors[n], visited.has(n))
-      toVisitPq.push([n, dist + neighbors[n]]);
-    }
-  }
-  return distances;
-}
-
-type PQState = {
-  pos: string;
+type State = {
+  pos: [number, number];
   dist: number;
   keys: Array<string>;
 }
-
-let toVisit = new PriorityQueue<PQState>(
-  (a, b) => (a.dist < b.dist) || (a.dist === b.dist && a.keys.length > b.keys.length)
-);
-toVisit.push({ pos: hash(startPos), dist: 0, keys: []});
-let minPath = null;
-while (toVisit.top() !== undefined) {
-  const { pos, dist, keys } = toVisit.pop();
-  if (keys.length > 5) break;
-  console.log("Running with", dist, map[pos], keys, dist)
-
-  const neighbors = getAllNeighbors(pos, new Set(keys));
-  if (keys.length == allKeys.length) {
-    console.log("Distance: ", dist);
-    minPath = keys;
-    console.log(keys)
-    break;
+const startState: State = { pos: startPos, dist: 0, keys: [] };
+const compareState = (a: State, b: State) =>  {
+  const dist = TinyQueue.defaultCompare(a.dist, b.dist);
+  if (dist == 0) {
+    return TinyQueue.defaultCompare(b.keys.length, a.keys.length);
   }
+  return dist;
+};
 
-  console.log(_.mapKeys(neighbors, (_, k) => map[k]));
-  for (let n of Object.keys(neighbors)) {
-    let nextKeys = [...keys, map[n]];
-    toVisit.push({ pos: n, dist: dist + neighbors[n], keys: nextKeys });
-  }
+const getNeighbors = ({ pos, keys, dist }: State): State[] => {
+  const keyset = new Set(keys);
+  const allNeighbors = graph[hash(pos)];
+  const accessibleNeighbors = Object.values(allNeighbors)
+    .filter(({ key }) => !keyset.has(key))
+    .filter(({ requiredKeys }) => requiredKeys.every((k: string) => keyset.has(k)))
+  return accessibleNeighbors.map((neighbor) => {
+    return {
+      pos: neighbor.pos,
+      dist: dist + neighbor.dist,
+      keys: keys.concat([neighbor.key]).sort(),
+    }
+  });
 }
 
-const charToPos = (char: string) => hash(getMapPoints(map).find(([x, y]) => map[hash([x, y])] == char));
-const getPathLength = (path) => {
-  let keys = new Set<string>();
-  let sum = 0;
-  let start = '@';
-  for (let char of path) {
-    // if (char === 'h') {
-      let length = getAllNeighbors(charToPos(start), keys)[charToPos(char)];
-      console.log(start,"to",char,":",length);
-      sum += length;
-    // }
-    keys.add(char);
-    start = char;
-  }
-  console.log("end sum", sum);
-}
-console.log(inputTest)
-// @ to a : 3
-// a to f : 6
-// f to b : 4
-// b to j : 5
-// j to g : 11
-// g to n : 5
-// n to h : 11
-// h to d : 4
-// d to l : 5
-// l to o : 18
-// o to e : 11
-// e to p : 5
-// p to c : 9
-// c to i : 5
-// i to k : 18 <- outputs 66
-// k to m : 16 <- outputs 28
-// getPathLength('a, f, b, j, g, n, h, d, l, o, e, p, c, i, k, m'.split(',').map((s) => s.trim()));
-// getPathLength('a, f, b, j, g, n, h, d, l, o, e, p, c, i, k, m'.split(',').map((s) => s.trim()));
+const hashState = ({ pos, keys }: State) => `${hash(pos)} | ${JSON.stringify(keys)}`;
 
-// console.log(getAllNeighbors(charToPos('e'), new Set(['b','a','c','d','f','e'])))
+const target = bfsPq({
+  start: startState,
+  hashState,
+  getNeighbors,
+  isGoal: ({ keys }) => keys.length === keyPoints.length,
+  compare: compareState,
+});
 
+console.log(target.dist)
+console.log("done")

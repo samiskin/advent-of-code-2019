@@ -118,12 +118,79 @@ export function* bfs<T>(map: Record<string, T>, [sx, sy]: [number, number], isWa
   return parents;
 }
 
-export const backtrace = (parentsMap: Record<string, [number, number]>, [sx, sy]: [number, number]): Array<[number, number]> => {
+export function bfsV2<T>(options: {
+  map: Record<string, T>,
+  start: [number, number],
+  isWall?: (val: T) => boolean,
+  visitor?: (pos: [number, number], dist?: number, parent?: [number, number]) => unknown
+}) {
+  const defaults = { isWall: (val: T) => !!val, visitor: _.noop };
+  const { map, start, isWall, visitor } = { ...defaults, ...options };
+
+  const visited = new Set();
+  let toVisit: Array<[number, number]> = [start];
+  const lengths = { [hash(start)]: 0 };
+  const data = {
+    [hash(start)]: { length: 0, parent: null },
+  };
+
+  while(true) {
+    const pos = toVisit.shift();
+    if (!pos) break;
+    const { length, parent } = data[hash(pos)];
+    visitor(pos, length, parent);
+    visited.add(hash(pos));
+    const next = getNeighbors(...pos)
+      .filter((n) => !visited.has(hash(n)))
+      .filter((n) => !(isWall(map[hash(n)])));
+    next.forEach((n) => {
+      data[hash(n)] = {
+        length: length + 1,
+        parent: pos
+      };
+    });
+    toVisit = toVisit.concat(next);
+  }
+
+  return data;
+}
+
+export const bfsPq = <State>(options: {
+  start: State,
+  hashState: (s: State) => string | number,
+  getNeighbors: (pos: State) => Array<State>,
+  isGoal: (s: State) => boolean
+  compare: (a: State, b: State) => -1 | 0 | 1,
+  visitor?: (pos: [number, number], dist?: number, parent?: [number, number]) => unknown
+}): State => {
+  const { start, hashState, getNeighbors, isGoal, compare, visitor} = options;
+  const toVisit = new TinyQueue([start], compare);
+  const visited = new Set();
+
+  while (toVisit.peek() !== undefined) {
+    const state = toVisit.pop() as State;
+    const cacheKey = hashState(state);
+    if (visited.has(cacheKey)) continue;
+    visited.add(cacheKey);
+
+    if (isGoal(state)) {
+      return state;
+    }
+
+    for (let neighbor of getNeighbors(state)) {
+      toVisit.push(neighbor);
+    }
+  }
+
+  return null;
+}
+
+export const backtrack = (bfsData: Record<string, { parent: [number, number] | null }>, [sx, sy]: [number, number]): Array<[number, number]> => {
   let curr: [number, number] = [sx, sy];
   let path = [];
   while(curr) {
     path.push(curr);
-    curr = parentsMap[hash(curr)];
+    curr = bfsData[hash(curr)].parent;
   }
   return path;
 }
@@ -366,13 +433,12 @@ export const modexp = function(a, b, n) {
 };
 
 
-/*
 export class TinyQueue {
   data;
   length;
   compare;
 
-    constructor(data = [], compare = defaultCompare) {
+    constructor(data = [], compare = TinyQueue.defaultCompare) {
         this.data = data;
         this.length = this.data.length;
         this.compare = compare;
@@ -444,9 +510,8 @@ export class TinyQueue {
 
         data[pos] = item;
     }
-}
 
-function defaultCompare(a, b) {
-    return a < b ? -1 : a > b ? 1 : 0;
+  static defaultCompare(a, b) {
+      return a < b ? -1 : a > b ? 1 : 0;
+  }
 }
-*/
