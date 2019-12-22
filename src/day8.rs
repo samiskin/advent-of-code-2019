@@ -40,8 +40,6 @@ pub fn run_part1(input: &str) -> i32 {
         }
     }
 
-
-
     let mut out_str = String::new();
     for coords in range_n(vec![height, width]) {
         let x = coords[1];

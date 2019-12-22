@@ -1,5 +1,6 @@
 //---------------------------------------------------------------------------------
 import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint } from "./utils";
+
 console.clear();
 console.log("\n");
 //---------------------------------------------------------------------------------
@@ -16,7 +17,6 @@ console.log(
   nRange(50, 50).filter(([x, y]) => checkPoint([x, y]) == 1).length
 );
 
-let map = {};
 const pointOffsets: Array<[number, number]> = [[0, 0], [99, 0], [0, 99]];
 let x = 0;
 let y = 0;

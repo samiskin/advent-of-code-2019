@@ -64,12 +64,15 @@ const getVisible = (sx, sy) => {
   ) as Array<[string, Array<[number, number]>]>;
 };
 
-const best: [number, number] = _.maxBy(asteroids, ([x, y]) => getVisible(x, y).length);
+const best = _.maxBy(
+  asteroids,
+  ([x, y]) => getVisible(x, y).length
+) as [number, number];
 const visibles = getVisible(best[0], best[1]);
 console.log(best, visibles.length);
 
 for (let count = 0; count < 10; ) {
-  for (let [_a, group] of visibles) {
+  for (let [, group] of visibles) {
     count++;
     if (count == 200) {
       console.log(group[0]);

@@ -1,23 +1,24 @@
-export const _ = require("lodash");
+import * as lodash from 'lodash';
+export const _ = lodash;
 
-export const eq = (a, b) => a === b;
-export const neq = (a, b) => a !== b;
-export const gt = (a, b) => a > b;
-export const lt = (a, b) => a < b;
+export const eq = (a: any, b: any) => a === b;
+export const neq = (a: any, b: any) => a !== b;
+export const gt = (a: any, b: any) => a > b;
+export const lt = (a: any, b: any) => a < b;
 
 export const range = (num: number, skip: number = 0) =>
   Array.from("x".repeat(num))
-    .map((x, i) => i)
+    .map((_x, i) => i)
     .filter(i => i >= skip);
 export const range2 = (start: number, end: number) =>
-  Array.from("x".repeat(end - start)).map((x, i) => i + start);
-export const nRange = (start, ...nums: number[]): Array<Array<number>> => {
+  Array.from("x".repeat(end - start)).map((_x, i) => i + start);
+export const nRange = (start: number, ...nums: number[]): Array<Array<number>> => {
   if (nums.length === 0) return range(start).map((i) => [i]);
   const nested = (nRange as any)(...nums);
-  return _.flatMap(range(start), ((i) => nested.map(nest => [i, ...nest])));
+  return _.flatMap(range(start), ((i: number) => nested.map((nest: Array<number>) => [i, ...nest])));
 };
 
-export const print = (col: string, ...args) => {
+export const print = (col: string, ...args: unknown[]) => {
   const getNum = (color = col) => {
     switch(color) {
       case 'r':
@@ -44,12 +45,12 @@ export const print = (col: string, ...args) => {
 
 export const hash = ([x, y]) => `${x} ${y}`;
 
-export const printGrid = (map, valOverrides = {}, posOverrides = {}) => {
+export const printGrid = <T>(map: Record<string, T>, valOverrides = {}, posOverrides = {}) => {
   const points = Object.keys(map).filter((hash) => !!map[hash]).map((hash) => hash.split(' ').map((i) => parseInt(i)));
-  const min_x = Math.min(...points.map(([x, y]) => x));
-  const max_x = Math.max(...points.map(([x, y]) => x));
-  const min_y = Math.min(...points.map(([x, y]) => y));
-  const max_y = Math.max(...points.map(([x, y]) => y));
+  const min_x = Math.min(...points.map(([x, _y]) => x));
+  const max_x = Math.max(...points.map(([x, _y]) => x));
+  const min_y = Math.min(...points.map(([_x, y]) => y));
+  const max_y = Math.max(...points.map(([_x, y]) => y));
 
   for (let y_base of range(max_y - min_y + 1)) {
     let output = ''
@@ -60,16 +61,16 @@ export const printGrid = (map, valOverrides = {}, posOverrides = {}) => {
         output += posOverride;
       } else {
         const value = map[hash([x, y])] ?? ' ';
-        output += valOverrides[value] ?? value;
+        output += valOverrides[value as string] ?? value;
       }
     }
     console.log(output);
   }
 }
 
-export const timeout = (time) => new Promise((resolve) => setTimeout(resolve, time));
+export const timeout = (time: number) => new Promise((resolve) => setTimeout(resolve, time));
 
-export const clamp = (val, lower, upper) => Math.max(Math.min(val, upper), lower);
+export const clamp = (val: number, lower: number, upper: number) => Math.max(Math.min(val, upper), lower);
 
 export const gcd = (...nums: number[]) =>
   nums.reduce((ans, n) => {
@@ -127,8 +128,8 @@ export const backtrace = (parentsMap: Record<string, [number, number]>, [sx, sy]
   return path;
 }
 
-export function searchSorted<T>(haystack: Array<T>, target: T, bounds?: [number, number]);
-export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target: T, bounds: [number, number]);
+export function searchSorted<T>(haystack: Array<T>, target: T, bounds?: [number, number]): number | null;
+export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target: T, bounds: [number, number]): number | null;
 export function searchSorted<T>(haystack: Array<T> | ((i: number) => T), target: T, bounds: [number, number] = [0, haystack.length]) {
   const [min, max] = bounds;
   if (max <= min) return null;
@@ -169,12 +170,12 @@ type ProgramResult = {
   value?: number;
 };
 
-const digit = (num, i) => Math.floor(num / Math.pow(10,i - 1)) % 10;
-const parseOp = (op) => [op % 100, digit(op, 3), digit(op, 4), digit(op, 5)];
+const digit = (num: number, i: number) => Math.floor(num / Math.pow(10,i - 1)) % 10;
+const parseOp = (op: number) => [op % 100, digit(op, 3), digit(op, 4), digit(op, 5)];
 export const runProgram = (prog: Program): ProgramResult => {
   const { mem, inputQueue } = prog;
 
-  const getAddr = (i, mode, base) => {
+  const getAddr = (i: number, mode: number, base: number) => {
     switch(mode) {
       case 0: return prog.mem[i];
       case 1: return i;
@@ -182,7 +183,7 @@ export const runProgram = (prog: Program): ProgramResult => {
       default: throw new Error("Invalid mode" + mode);
     }
   }
-  const getArgs = (op) => {
+  const getArgs = (op: number) => {
     if ([3, 4, 9].includes(op)) return 2;
     if ([5, 6].includes(op)) return 3;
     if ([99].includes(op)) return 0;
@@ -229,22 +230,22 @@ export const runProgram = (prog: Program): ProgramResult => {
 export const hashToPoint = (hash: string) =>
   hash.split(' ').map((i) => parseInt(i)) as [number, number];
 
-export const getMapPoints = (map): Array<[number, number]> =>
+export const getMapPoints = (map: Record<string, unknown>): Array<[number, number]> =>
   Object.keys(map).filter((hash) => !!map[hash]).map(hashToPoint) as any;
 
-export const getDimensions = (map) => {
+export const getDimensions = (map: Record<string, unknown>) => {
   const points = getMapPoints(map);
-  const min_x = Math.min(...points.map(([x, y]) => x));
-  const max_x = Math.max(...points.map(([x, y]) => x));
-  const min_y = Math.min(...points.map(([x, y]) => y));
-  const max_y = Math.max(...points.map(([x, y]) => y));
-  return [min_x - max_x]
+  const min_x = Math.min(...points.map(([x, _y]) => x));
+  const max_x = Math.max(...points.map(([x, _y]) => x));
+  const min_y = Math.min(...points.map(([_x, y]) => y));
+  const max_y = Math.max(...points.map(([_x, y]) => y));
+  return [max_x - min_x, max_y - min_y];
 }
 
 export const addPos = (p1: [number, number], p2: [number, number]): [number, number] => 
   [p1[0] + p2[0], p1[1] + p2[1]];
 
-const heapify = <T>(arr: Array<T>, isHigher = (a, b) => a > b, i: number = 0) => {
+const heapify = <T>(arr: Array<T>, isHigher = (a: T, b: T) => a > b, i: number = 0) => {
   const curr = arr[i];
   const [ left, right ] = [ 2 * i + 1, 2 * i + 2];
   if (arr[left] && isHigher(arr[left], curr)) {
@@ -312,3 +313,140 @@ export class PriorityQueue<T> {
     return this.elements.length;
   }
 }
+
+
+export function modinv(a, m) {
+  // validate inputs
+  [a, m] = [Number(a), Number(m)]
+  if (Number.isNaN(a) || Number.isNaN(m)) {
+    return NaN // invalid input
+  }
+  a = (a % m + m) % m
+  if (!a || m < 2) {
+    return NaN // invalid input
+  }
+  // find the gcd
+  const s = []
+  let b = m
+  while(b) {
+    [a, b] = [b, a % b]
+    s.push({a, b})
+  }
+  if (a !== 1) {
+    return NaN // inverse does not exists
+  }
+  // find the inverse
+  let x = 1
+  let y = 0
+  for(let i = s.length - 2; i >= 0; --i) {
+    [x, y] = [y,  x - y * Math.floor(s[i].a / s[i].b)]
+  }
+  return (y % m + m) % m
+}
+
+
+export const modexp = function(a, b, n) {
+  a = a % n;
+  var result = 1;
+  var x = a;
+
+  while(b > 0){
+    var leastSignificantBit = b % 2;
+    b = Math.floor(b / 2);
+
+    if (leastSignificantBit == 1) {
+      result = result * x;
+      result = result % n;
+    }
+
+    x = x * x;
+    x = x % n;
+  }
+  return result;
+};
+
+
+/*
+export class TinyQueue {
+  data;
+  length;
+  compare;
+
+    constructor(data = [], compare = defaultCompare) {
+        this.data = data;
+        this.length = this.data.length;
+        this.compare = compare;
+
+        if (this.length > 0) {
+            for (let i = (this.length >> 1) - 1; i >= 0; i--) this._down(i);
+        }
+    }
+
+    push(item) {
+        this.data.push(item);
+        this.length++;
+        this._up(this.length - 1);
+    }
+
+    pop() {
+        if (this.length === 0) return undefined;
+
+        const top = this.data[0];
+        const bottom = this.data.pop();
+        this.length--;
+
+        if (this.length > 0) {
+            this.data[0] = bottom;
+            this._down(0);
+        }
+
+        return top;
+    }
+
+    peek() {
+        return this.data[0];
+    }
+
+    _up(pos) {
+        const {data, compare} = this;
+        const item = data[pos];
+
+        while (pos > 0) {
+            const parent = (pos - 1) >> 1;
+            const current = data[parent];
+            if (compare(item, current) >= 0) break;
+            data[pos] = current;
+            pos = parent;
+        }
+
+        data[pos] = item;
+    }
+
+    _down(pos) {
+        const {data, compare} = this;
+        const halfLength = this.length >> 1;
+        const item = data[pos];
+
+        while (pos < halfLength) {
+            let left = (pos << 1) + 1;
+            let best = data[left];
+            const right = left + 1;
+
+            if (right < this.length && compare(data[right], best) < 0) {
+                left = right;
+                best = data[right];
+            }
+            if (compare(best, item) >= 0) break;
+
+            data[pos] = best;
+            pos = left;
+        }
+
+        data[pos] = item;
+    }
+}
+
+function defaultCompare(a, b) {
+    return a < b ? -1 : a > b ? 1 : 0;
+}
+*/

@@ -1,6 +1,6 @@
 
 //---------------------------------------------------------------------------------
-import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint } from "./utils";
+import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint, PriorityQueue } from "./utils";
 console.clear();
 console.log("\n");
 //---------------------------------------------------------------------------------
@@ -116,22 +116,59 @@ LU....#...#.#...#.....#.#.#                                                     
                                    D   G         L         A   Y         Q                                 
                                    H   U         E         B   A         W                                 `;
 
+
+const inputTest = `
+             Z L X W       C                 
+             Z P Q B       K                 
+  ###########.#.#.#.#######.###############  
+  #...#.......#.#.......#.#.......#.#.#...#  
+  ###.#.#.#.#.#.#.#.###.#.#.#######.#.#.###  
+  #.#...#.#.#...#.#.#...#...#...#.#.......#  
+  #.###.#######.###.###.#.###.###.#.#######  
+  #...#.......#.#...#...#.............#...#  
+  #.#########.#######.#.#######.#######.###  
+  #...#.#    F       R I       Z    #.#.#.#  
+  #.###.#    D       E C       H    #.#.#.#  
+  #.#...#                           #...#.#  
+  #.###.#                           #.###.#  
+  #.#....OA                       WB..#.#..ZH
+  #.###.#                           #.#.#.#  
+CJ......#                           #.....#  
+  #######                           #######  
+  #.#....CK                         #......IC
+  #.###.#                           #.###.#  
+  #.....#                           #...#.#  
+  ###.###                           #.#.#.#  
+XF....#.#                         RF..#.#.#  
+  #####.#                           #######  
+  #......CJ                       NM..#...#  
+  ###.#.#                           #.###.#  
+RE....#.#                           #......RF
+  ###.###        X   X       L      #.#.#.#  
+  #.....#        F   Q       P      #.#.#.#  
+  ###.###########.###.#######.#########.###  
+  #.....#...#.....#.......#...#.....#.#...#  
+  #####.#.###.#######.#######.###.###.#.#.#  
+  #.......#.......#.#.#.#.#...#...#...#.#.#  
+  #####.###.#####.#.#.#.#.###.###.#.###.###  
+  #.......#.....#.#...#...............#...#  
+  #############.#.#.###.###################  
+               A O F   N                     
+               A A D   M                    
+`
+
 const grid = input.split('\n').filter((l) => l.trim() !== '')
 const width = grid[0].length - 4;
 const height = grid.length - 4;
 const map = {};
 
-let firstHash = null;
 for (let [y, x] of nRange(height, width)) {
   map[hash([x, y])] = grid[y + 2][x + 2];
 }
 
-// const inner_width = grid[Math.floor(grid.length / 2)].trim().split(" ");
-// console.log(inner_width)
-
-const getLabel = ([x, y]) => {
+const getLabel = ([x, y]): [string, number] => {
   let key = hash([x, y]);
-  if (!['#', '.'].includes(map[key])) return null;
+  if (!['#', '.'].includes(map[key])) return [null, null];
   const first = getNeighbors(x, y)
     .filter(([nx, ny]) => !['#', '.', ' '].includes(grid[ny + 2][nx + 2]))
     [0];
@@ -142,69 +179,74 @@ const getLabel = ([x, y]) => {
       [0];
     if (second) {
       const [sx, sy] = second;
+      let change_in_level = x == 0 || x == width - 1 || y == 0 || y == height - 1 ? 1 : -1;
       if (fx < sx || fy < sy) {
-        return `${grid[fy + 2][fx + 2]}${grid[sy + 2][sx + 2]}`;
+        return [`${grid[fy + 2][fx + 2]}${grid[sy + 2][sx + 2]}`, change_in_level];
       } else if (sx < fx || sy < fy) {
-        return `${grid[sy + 2][sx + 2]}${grid[fy + 2][fx + 2]}`;
+        return [`${grid[sy + 2][sx + 2]}${grid[fy + 2][fx + 2]}`, change_in_level];
       }
     }
   }
-  return null;
+  return [null, null];
 }
 
-const portals: Record<string, Array<[number, number]>> = {}
+const portals: Record<string, Array<[[number, number], number]>> = {}
 for (let [y, x] of nRange(height, width)) {
-  const label = getLabel([x, y]);
+  const [label, change] = getLabel([x, y]);
   if (!label) continue;
   portals[label] = portals[label] || [];
-  portals[label].push([x, y]);
+  portals[label].push([[x, y], change]);
 }
 
-const paths = {};
-for (let [label, locations] of Object.entries(portals)) {
+const paths: Record<string, [[number, number], number]> = {};
+for (let [, locations] of Object.entries(portals)) {
   if (locations.length > 1) {
-    paths[hash(locations[0])] = locations[1];
-    paths[hash(locations[1])] = locations[0];
+    paths[hash(locations[0][0])] = locations[1];
+    paths[hash(locations[1][0])] = locations[0];
   }
 }
+// console.log(_.mapKeys(paths, (v, k) => getLabel(hashToPoint(k))))
 
 
-const start = getMapPoints(map).filter(([x, y]) => getLabel([x, y]) == 'AA')[0];
-const end = getMapPoints(map).filter(([x, y]) => getLabel([x, y]) == 'ZZ')[0];
+const start = getMapPoints(map).filter(([x, y]) => getLabel([x, y])[0] == 'AA')[0];
+const end = getMapPoints(map).filter(([x, y]) => getLabel([x, y])[0] == 'ZZ')[0];
+// console.log(start)
 
 
 const visited = new Set();
-let toVisit: Array<[number, number]> = [ start ];
-const isWall = (s) => s === '#' || s === ' ';
-const lengths = { [hash(start)]: 0 };
+let toVisit = [[start, 0, 0]]
+
+const hashNode = ([pos, depth]) => `[${hash(pos)}, ${depth}]`;
+
+const isWall = (s: string) => s === '#' || s === ' ';
 
 while(true) {
-  const pos = toVisit.shift();
-  if (!pos) break;
-  if (hash(pos) == hash(end)) {
+  if (!toVisit[0]) break;
+  const [pos, depth, length]: [[number, number], number, number] = toVisit.shift() as any;
+
+  if (hash(pos) == hash(end) && depth == 0) {
     console.log("Done")
-    console.log(lengths[hash(pos)])
+    console.log(length)
     break;
   };
-  const length = lengths[hash(pos)];
-  visited.add(hash(pos));
+
+  visited.add(hashNode([pos, depth]));
+
   const neighbors = getNeighbors(...pos)
     .filter(([x, y]) => x >= 0 && x < width && y >= 0 && y < height)
-    .filter((n) => !visited.has(hash(n)))
+    .filter((n) => !visited.has(hashNode([n, depth])))
     .filter((n) => !(isWall(map[hash(n)])));
 
-
-
   neighbors.forEach((n) => {
-    lengths[hash(n)] = length + 1;
+    toVisit.push([n, depth, length + 1]);
   });
 
-  const portal_neighbors = neighbors 
-    .map(([x, y]) => paths[hash([x, y])])
-    .filter((p) => !!p)
-
-  portal_neighbors.forEach((n) => {
-    lengths[hash(n)] = length + 2;
-  });
-  toVisit = toVisit.concat(neighbors.concat(portal_neighbors));
+  const [p_neighbor, ddepth] = paths[hash(pos)] || [];
+  if (p_neighbor && !visited.has(hashNode([p_neighbor, depth + ddepth]))) {
+    if (depth + ddepth >= 0) {
+      toVisit.push([p_neighbor, depth + ddepth, length + 1]);
+    }
+  }
 }
+
+console.log("halted")
