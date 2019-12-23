@@ -94,31 +94,7 @@ export const getNeighbors = ([x, y]: [number, number], includeDiag: boolean = fa
     .filter(([nx, ny]) => nx !== x || ny !== y) as any
 }
 
-export function* bfs<T>(map: Record<string, T>, [sx, sy]: [number, number], isWall: (val: T) => boolean = (val) => !!val): Generator<[[number, number], number], Record<string, [number, number]>> {
-  const visited = new Set();
-  let toVisit: Array<[number, number]> = [[sx, sy]];
-  const lengths = { [hash([sx, sy])]: 0 };
-  const parents = {};
-  while(true) {
-    const pos = toVisit.shift();
-    if (!pos) break;
-    const length = lengths[hash(pos)];
-    yield [pos, length];
-    visited.add(hash(pos));
-    const next = getNeighbors(pos)
-      .filter((n) => !visited.has(hash(n)))
-      .filter((n) => !(isWall(map[hash(n)])));
-    next.forEach((n) => {
-      lengths[hash(n)] = length + 1;
-      parents[hash(n)] = pos;
-    });
-    toVisit = toVisit.concat(next);
-  }
-
-  return parents;
-}
-
-export function bfsV2<T>(options: {
+export function bfs<T>(options: {
   map: Record<string, T>,
   start: [number, number],
   isWall?: (val: T) => boolean,
@@ -129,7 +105,6 @@ export function bfsV2<T>(options: {
 
   const visited = new Set();
   let toVisit: Array<[number, number]> = [start];
-  const lengths = { [hash(start)]: 0 };
   const data = {
     [hash(start)]: { length: 0, parent: null },
   };

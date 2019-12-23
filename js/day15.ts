@@ -55,7 +55,7 @@ while (true) {
   const prog = progs.shift();
   if (!prog) break;
   const [ x, y ] = prog.pos;
-  for (let [nx, ny] of getNeighbors(x, y)) {
+  for (let [nx, ny] of getNeighbors([x, y])) {
     if (visited.has(hash([nx, ny]))) continue;
     visited.add(hash([x, y]));
 
@@ -83,13 +83,12 @@ while (true) {
 }
 console.log("Found O at", oxygenPos);
 
-let bfsGen = bfs(map, oxygenPos, (s) => s == '#');
 let maxLen = 0;
-while (true) {
-  const { value, done } = bfsGen.next();
-  if (done) break;
-  const [ pos, len ] = value as any;
-  maxLen = Math.max(maxLen, len as number);
-}
+bfs({
+  map,
+  start: oxygenPos,
+  isWall: (s) => s === '#',
+  visitor: ((_, length) => maxLen = Math.max(maxLen, length)),
+});
 
 console.log("Time to expand fully:", maxLen)
