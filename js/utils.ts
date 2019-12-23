@@ -131,15 +131,21 @@ export function bfs<T>(options: {
 }
 
 export const bfsPq = <State>(options: {
-  start: State,
-  hashState: (s: State) => string | number,
-  getNeighbors: (pos: State) => Array<State>,
-  isGoal: (s: State) => boolean
-  compare: (a: State, b: State) => -1 | 0 | 1,
-  // visitor?: (pos: [number, number], dist?: number, parent?: [number, number]) => unknown
+  start: State;
+  hashState: (s: State) => string | number;
+  getNeighbors: (pos: State) => Array<State>;
+  isGoal: (s: State) => boolean;
+  compare: (a: State, b: State) => -1 | 0 | 1;
+  visitor?: (state: State, parent?: State) => unknown;
 }): State => {
-  const { start, hashState, getNeighbors, isGoal, compare } = options;
-  const toVisit = new TinyQueue([start], compare);
+  const defaultOptions = { visitor: _.noop };
+  const { start, hashState, getNeighbors, isGoal, compare, visitor } = {
+    ...defaultOptions,
+    ...options
+  };
+
+  const toVisit = new PriorityQueue([start], compare);
+  // const toVisit = new TinyQueue([start], compare);
   const visited = new Set();
 
   while (toVisit.peek() !== undefined) {
@@ -147,6 +153,7 @@ export const bfsPq = <State>(options: {
     const cacheKey = hashState(state);
     if (visited.has(cacheKey)) continue;
     visited.add(cacheKey);
+    visitor(state);
 
     if (isGoal(state)) {
       return state;
@@ -158,7 +165,7 @@ export const bfsPq = <State>(options: {
   }
 
   return null;
-}
+};
 
 export const backtrack = (bfsData: Record<string, { parent: [number, number] | null }>, [sx, sy]: [number, number]): Array<[number, number]> => {
   let curr: [number, number] = [sx, sy];
@@ -288,56 +295,86 @@ export const getDimensions = (map: Record<string, unknown>) => {
 export const addPos = (p1: [number, number], p2: [number, number]): [number, number] => 
   [p1[0] + p2[0], p1[1] + p2[1]];
 
-const heapify = <T>(arr: Array<T>, isHigher = (a: T, b: T) => a > b, i: number = 0) => {
+const heapify = <T>(arr: Array<T>, compare: (a: T, b: T) => -1 | 0 | 1, i: number = 0) => {
   const curr = arr[i];
   const [ left, right ] = [ 2 * i + 1, 2 * i + 2];
-  if (arr[left] && isHigher(arr[left], curr)) {
+  if (arr[left] && compare(arr[left], curr) > 0) {
     arr[i] = arr[left];
     arr[left] = curr;
-    heapify(arr, isHigher, left);
-  } else if (arr[right] && isHigher(arr[right], curr)) {
+    heapify(arr, compare, left);
+  } else if (arr[right] && compare(arr[right], curr) > 0) {
     arr[i] = arr[right];
     arr[right] = curr;
-    heapify(arr, isHigher, right);
+    heapify(arr, compare, right);
   }
 }
 
 export class PriorityQueue<T> {
-  elements: Array<T>;
-  comparator: (a: T, b: T) => boolean;
-  constructor(comparator: (a: T, b: T) => boolean = (a, b) => a > b, elements: Array<T> = []) {
-    this.elements = elements;
+  data: Array<T>;
+  comparator: (a: T, b: T) => -1 | 0 | 1;
+  constructor(data: Array<T> = [], comparator: (a: T, b: T) => -1 | 0 | 1 = PriorityQueue.defaultCompare) {
+    this.data = data;
     this.comparator = comparator;
   }
 
-  top = () => this.elements[0];
+  peek = () => this.data[0];
 
   push = (e: T) => {
-    this.elements.push(e);
-    this.elements.sort((a, b) => this.comparator(a, b) ? 1 : -1);
+    this.data.push(e);
+    this._bubbleUp(this.data.length - 1);
   }
-  pop = () => {
-    return this.elements.pop();
-  }
-  // push = (e: T) => {
-  //   this.elements.push(e);
-  //   let child = this.elements.length - 1;
-  //   let parent = Math.floor((child - 1) / 2);
-  //   while (this.elements[parent] && this.comparator(e, this.elements[parent])) {
-  //     this.elements[child] = this.elements[parent];
-  //     this.elements[parent] = e;
-  //     child = parent;
-  //     parent = Math.floor((child - 1) / 2);
-  //   }
-  // }
 
-  // pop = (): T => {
-  //   const top = this.elements[0];
-  //   this.elements[0] = this.elements[this.elements.length - 1]
-  //   this.elements.pop();
-  //   heapify(this.elements, this.comparator);
-  //   return top;
-  // }
+  pop = (): T => {
+    if (this.data.length === 0) return undefined;
+    const top = this.data[0];
+    const bottom = this.data.pop();
+    if (this.data.length > 0) {
+        this.data[0] = bottom;
+        this._bubbleDown(0);
+    }
+
+    return top;
+  }
+
+  _bubbleUp = (pos: number) => {
+    const compare = this.comparator;
+    const item = this.data[pos];
+
+    while (pos > 0) {
+        const parent = (pos - 1) >> 1;
+        const current = this.data[parent];
+        if (compare(item, current) >= 0) break;
+        this.data[pos] = current;
+        pos = parent;
+    }
+
+    this.data[pos] = item;
+  }
+
+  _bubbleDown = (pos: number) => {
+    const { data, comparator } = this;
+    if (pos >= this.data.length) return;
+
+    const halfLength = this.data.length >> 1;
+    const item = data[pos];
+
+    while (pos < halfLength) {
+      let left = (pos << 1) + 1;
+      let best = data[left];
+      const right = left + 1;
+
+      if (right < this.length && comparator(data[right], best) < 0) {
+          left = right;
+          best = data[right];
+      }
+      if (comparator(best, item) >= 0) break;
+
+      data[pos] = best;
+      pos = left;
+    }
+
+    data[pos] = item;
+  }
 
   print = () => {
     const toIndex = (depth: number, offset: number) => (Math.pow(2, depth) + offset) - 1;
@@ -346,148 +383,17 @@ export class PriorityQueue<T> {
       const offset = (i + 1) % Math.pow(2, depth);
       return [depth, offset];
     }
-    const maxDepth = toLevel(this.elements.length - 1)[0];
+    const maxDepth = toLevel(this.data.length - 1)[0];
     for (let depth = 0; depth < maxDepth; depth++) {
-      console.log(range(Math.pow(2, depth)).map((offset) => this.elements[toIndex(depth, offset)]));
+      console.log(range(Math.pow(2, depth)).map((offset) => this.data[toIndex(depth, offset)]));
     }
   }
 
   get length() {
-    return this.elements.length;
+    return this.data.length;
   }
-}
 
-
-export function modinv(a, m) {
-  // validate inputs
-  [a, m] = [Number(a), Number(m)]
-  if (Number.isNaN(a) || Number.isNaN(m)) {
-    return NaN // invalid input
-  }
-  a = (a % m + m) % m
-  if (!a || m < 2) {
-    return NaN // invalid input
-  }
-  // find the gcd
-  const s = []
-  let b = m
-  while(b) {
-    [a, b] = [b, a % b]
-    s.push({a, b})
-  }
-  if (a !== 1) {
-    return NaN // inverse does not exists
-  }
-  // find the inverse
-  let x = 1
-  let y = 0
-  for(let i = s.length - 2; i >= 0; --i) {
-    [x, y] = [y,  x - y * Math.floor(s[i].a / s[i].b)]
-  }
-  return (y % m + m) % m
-}
-
-
-export const modexp = function(a, b, n) {
-  a = a % n;
-  var result = 1;
-  var x = a;
-
-  while(b > 0){
-    var leastSignificantBit = b % 2;
-    b = Math.floor(b / 2);
-
-    if (leastSignificantBit == 1) {
-      result = result * x;
-      result = result % n;
-    }
-
-    x = x * x;
-    x = x % n;
-  }
-  return result;
-};
-
-
-export class TinyQueue {
-  data;
-  length;
-  compare;
-
-    constructor(data = [], compare = TinyQueue.defaultCompare) {
-        this.data = data;
-        this.length = this.data.length;
-        this.compare = compare;
-
-        if (this.length > 0) {
-            for (let i = (this.length >> 1) - 1; i >= 0; i--) this._down(i);
-        }
-    }
-
-    push(item) {
-        this.data.push(item);
-        this.length++;
-        this._up(this.length - 1);
-    }
-
-    pop() {
-        if (this.length === 0) return undefined;
-
-        const top = this.data[0];
-        const bottom = this.data.pop();
-        this.length--;
-
-        if (this.length > 0) {
-            this.data[0] = bottom;
-            this._down(0);
-        }
-
-        return top;
-    }
-
-    peek() {
-        return this.data[0];
-    }
-
-    _up(pos) {
-        const {data, compare} = this;
-        const item = data[pos];
-
-        while (pos > 0) {
-            const parent = (pos - 1) >> 1;
-            const current = data[parent];
-            if (compare(item, current) >= 0) break;
-            data[pos] = current;
-            pos = parent;
-        }
-
-        data[pos] = item;
-    }
-
-    _down(pos) {
-        const {data, compare} = this;
-        const halfLength = this.length >> 1;
-        const item = data[pos];
-
-        while (pos < halfLength) {
-            let left = (pos << 1) + 1;
-            let best = data[left];
-            const right = left + 1;
-
-            if (right < this.length && compare(data[right], best) < 0) {
-                left = right;
-                best = data[right];
-            }
-            if (compare(best, item) >= 0) break;
-
-            data[pos] = best;
-            pos = left;
-        }
-
-        data[pos] = item;
-    }
-
-  static defaultCompare(a, b) {
+  static defaultCompare<T>(a: T, b: T) {
       return a < b ? -1 : a > b ? 1 : 0;
   }
 }

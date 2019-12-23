@@ -1,5 +1,5 @@
 //---------------------------------------------------------------------------------
-import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint, PriorityQueue, bfs, backtrack, TinyQueue, bfsPq } from "./utils";
+import { _, eq, neq, gt, lt, range, range2, nRange, print, printGrid, hash, timeout, clamp, gcd, lcm, getNeighbors, bfs, createProgram, runProgram, getMapPoints, addPos, hashToPoint, PriorityQueue, backtrack, bfsPq } from "./utils";
 console.clear();
 console.log("\n");
 //---------------------------------------------------------------------------------
@@ -96,7 +96,8 @@ const inputTest = `
 #k.E..a...g..B.n#
 #######.#.#######
 #l.F..d.#.h..C.m#
-#################`
+#################
+`
 
 const map: Record<string, string> = input
   .trim()
@@ -125,7 +126,7 @@ type Graph = Record<string, Record<string, {
 }>>
 const buildGraph = (starts: Array<[number, number]>) => starts.reduce((grid, pos) => {
   grid[hash(pos)] = {};
-  const data = bfsV2({ map, start: pos, isWall: (v) => v === '#' });
+  const data = bfs({ map, start: pos, isWall: (v) => v === '#' });
   for (let otherKey of keyPoints.filter((p) => p[0] !== pos[0] || p[1] !== pos[1])) {
     if (!data[hash(otherKey)]) continue;
     const path = backtrack(data, otherKey);
@@ -146,10 +147,10 @@ type State = {
   keys: Array<string>;
 }
 const startState: State = { pos: startPos, dist: 0, keys: [] };
-const compareState = (a, b) =>  {
-  const dist = TinyQueue.defaultCompare(a.dist, b.dist);
+const compareState = <T extends { dist: number, keys: Array<string> }>(a: T, b: T) =>  {
+  const dist = PriorityQueue.defaultCompare(a.dist, b.dist);
   if (dist == 0) {
-    return TinyQueue.defaultCompare(b.keys.length, a.keys.length);
+    return PriorityQueue.defaultCompare(b.keys.length, a.keys.length);
   }
   return dist;
 };
