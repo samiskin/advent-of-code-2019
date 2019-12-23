@@ -97,7 +97,7 @@ const inputTest = `
 #######.#.#######
 #l.F..d.#.h..C.m#
 #################
-`
+`;
 
 const map: Record<string, string> = input
   .trim()
@@ -115,8 +115,7 @@ const map: Record<string, string> = input
 const isKey = (char: string) => 'a' <= char && 'z' >= char;
 const isDoor = (char: string) => 'A' <= char && 'Z' >= char;
 const keyPoints = getMapPoints(map).filter(([x, y]) => isKey(map[hash([x, y])]));
-const keyPos = (key: string) => getMapPoints(map).find(([x, y]) => map[hash([x, y])] == key);
-const startPos = keyPos('@');
+const findChar = (char: string) => getMapPoints(map).filter(([x, y]) => map[hash([x, y])] === char);
 
 type Graph = Record<string, Record<string, {
   pos: [number, number],
@@ -124,6 +123,11 @@ type Graph = Record<string, Record<string, {
   dist: number,
   requiredKeys: Array<string>,
 }>>
+
+/**
+ * Generate a graph that stores the distances from each key to every other key as
+ * well as the necessary keys to be able to traverse that edge
+ */
 const buildGraph = (starts: Array<[number, number]>) => starts.reduce((grid, pos) => {
   grid[hash(pos)] = {};
   const data = bfs({ map, start: pos, isWall: (v) => v === '#' });
@@ -142,73 +146,18 @@ const buildGraph = (starts: Array<[number, number]>) => starts.reduce((grid, pos
 }, {})
 
 type State = {
-  pos: [number, number];
+  positions: Array<[number, number]>,
   dist: number;
   keys: Array<string>;
 }
-const startState: State = { pos: startPos, dist: 0, keys: [] };
-const compareState = <T extends { dist: number, keys: Array<string> }>(a: T, b: T) =>  {
-  const dist = PriorityQueue.defaultCompare(a.dist, b.dist);
-  if (dist == 0) {
-    return PriorityQueue.defaultCompare(b.keys.length, a.keys.length);
-  }
-  return dist;
-};
 
-const graph: Graph = buildGraph(keyPoints.concat([startPos]));
+const hashState = ({ positions, keys }: State) => `${JSON.stringify(positions)} | ${JSON.stringify(keys)}`;
+const compareState = (a: State, b: State) => PriorityQueue.defaultCompare(a.dist, b.dist);
 
-const getNeighborStates = ({ pos, keys, dist }: State): State[] => {
-  const keyset = new Set(keys);
-  const allNeighbors = graph[hash(pos)];
-  const accessibleNeighbors = Object.values(allNeighbors)
-    .filter(({ key }) => !keyset.has(key))
-    .filter(({ requiredKeys }) => requiredKeys.every((k: string) => keyset.has(k)))
-  return accessibleNeighbors.map((neighbor) => {
-    return {
-      pos: neighbor.pos,
-      dist: dist + neighbor.dist,
-      keys: keys.concat([neighbor.key]).sort(),
-    }
-  });
-}
-
-const hashState = ({ pos, keys }: State) => `${hash(pos)} | ${JSON.stringify(keys)}`;
-
-const target = bfsPq({
-  start: startState,
-  hashState,
-  getNeighbors: getNeighborStates,
-  isGoal: ({ keys }) => keys.length === keyPoints.length,
-  compare: compareState,
-});
-
-console.log(target.dist);
-console.log("done p1");
-
-([ startPos ]).concat(getNeighbors(startPos))
-  .forEach((pos) => (map[hash(pos)] = "#"));
-
-_.difference(
-  getNeighbors(startPos, true).map(hash),
-  getNeighbors(startPos).map(hash)
-).forEach(posHash => (map[posHash] = "@"));
-
-
-type Pos = [number, number];
-type StateP2 = {
-  positions: [Pos, Pos, Pos, Pos],
-  dist: number;
-  keys: Array<string>;
-}
-const startPosP2 = getMapPoints(map).filter(([x, y]) => map[hash([x, y])] == '@') as [Pos, Pos, Pos, Pos];
-
-const startStateP2: StateP2 = { positions: startPosP2, dist: 0, keys: [] };
-const graphP2: Graph = buildGraph(keyPoints.concat(startPosP2));
-
-const getNeighborStatesP2 = ({ positions, keys, dist }: StateP2): StateP2[] => {
+const getNeighborStates = (graph: Graph, { positions, keys, dist }: State): State[] => {
   const keyset = new Set(keys);
   return positions.reduce((neighbors, pos, i) => {
-    const allNeighbors = graphP2[hash(pos)];
+    const allNeighbors = graph[hash(pos)];
     const accessibleNeighbors = Object.values(allNeighbors)
       .filter(({ key }) => !keyset.has(key))
       .filter(({ requiredKeys }) => requiredKeys.every((k: string) => keyset.has(k)))
@@ -224,22 +173,48 @@ const getNeighborStatesP2 = ({ positions, keys, dist }: StateP2): StateP2[] => {
   }, []);
 }
 
-const hashStateP2 = ({ positions, keys }: StateP2) => `${JSON.stringify(positions)} | ${JSON.stringify(keys)}`;
+// ----------
+
+const startPosP1 = findChar('@')[0];
+const startStateP1 = { positions: [startPosP1], dist: 0, keys: [] };
+const graph: Graph = buildGraph(keyPoints.concat([startPosP1]));
+
+const targetP1 = bfsPq({
+  start: startStateP1,
+  hashState: hashState,
+  getNeighbors: (...args) => getNeighborStates(graph, ...args),
+  isGoal: ({ keys }) => keys.length === keyPoints.length,
+  compare: compareState,
+});
+
+console.log(targetP1.dist);
+console.log("done p1");
+
+// ----------
+
+const adjacentToStart = getNeighbors(startPosP1).map(hash);
+const diagToStart = _.difference(
+  getNeighbors(startPosP1, true).map(hash),
+  adjacentToStart
+);
+adjacentToStart.forEach(posHash => (map[posHash] = "#"));
+diagToStart.forEach(posHash => (map[posHash] = "@"));
+
+// ----------
+
+const startPosP2 = findChar('@');
+
+const startStateP2: State = { positions: startPosP2, dist: 0, keys: [] };
+const graphP2: Graph = buildGraph(keyPoints.concat(startPosP2));
+
 
 const targetP2 = bfsPq({
   start: startStateP2,
-  hashState: hashStateP2,
-  getNeighbors: getNeighborStatesP2,
+  hashState: hashState,
+  getNeighbors: (...args) => getNeighborStates(graphP2, ...args),
   isGoal: ({ keys }) => keys.length === keyPoints.length,
   compare: compareState,
 });
 
 console.log(targetP2.dist);
 console.log("done p2");
-
-
-
-
-
-
-
