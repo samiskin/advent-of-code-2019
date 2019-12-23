@@ -86,10 +86,10 @@ export const gcd = (...nums: number[]) =>
 export const lcm = (...nums: number[]) =>
   nums.reduce((ans, n) => (n * ans) / gcd(ans, n));
 
-export const getNeighbors = (x: number, y: number): Array<[number, number]>  => {
+export const getNeighbors = ([x, y]: [number, number], includeDiag: boolean = false): Array<[number, number]>  => {
   return nRange(3, 3)
     .map(([dx, dy]) => [dx - 1, dy - 1])
-    .filter(([dx, dy]) => Math.abs(dx) + Math.abs(dy) < 2)
+    .filter(([dx, dy]) => includeDiag || (Math.abs(dx) + Math.abs(dy) < 2))
     .map(([dx, dy]) => [x + dx, y + dy])
     .filter(([nx, ny]) => nx !== x || ny !== y) as any
 }
@@ -105,7 +105,7 @@ export function* bfs<T>(map: Record<string, T>, [sx, sy]: [number, number], isWa
     const length = lengths[hash(pos)];
     yield [pos, length];
     visited.add(hash(pos));
-    const next = getNeighbors(...pos)
+    const next = getNeighbors(pos)
       .filter((n) => !visited.has(hash(n)))
       .filter((n) => !(isWall(map[hash(n)])));
     next.forEach((n) => {
@@ -140,7 +140,7 @@ export function bfsV2<T>(options: {
     const { length, parent } = data[hash(pos)];
     visitor(pos, length, parent);
     visited.add(hash(pos));
-    const next = getNeighbors(...pos)
+    const next = getNeighbors(pos)
       .filter((n) => !visited.has(hash(n)))
       .filter((n) => !(isWall(map[hash(n)])));
     next.forEach((n) => {
@@ -161,9 +161,9 @@ export const bfsPq = <State>(options: {
   getNeighbors: (pos: State) => Array<State>,
   isGoal: (s: State) => boolean
   compare: (a: State, b: State) => -1 | 0 | 1,
-  visitor?: (pos: [number, number], dist?: number, parent?: [number, number]) => unknown
+  // visitor?: (pos: [number, number], dist?: number, parent?: [number, number]) => unknown
 }): State => {
-  const { start, hashState, getNeighbors, isGoal, compare, visitor} = options;
+  const { start, hashState, getNeighbors, isGoal, compare } = options;
   const toVisit = new TinyQueue([start], compare);
   const visited = new Set();
 
@@ -190,7 +190,8 @@ export const backtrack = (bfsData: Record<string, { parent: [number, number] | n
   let path = [];
   while(curr) {
     path.push(curr);
-    curr = bfsData[hash(curr)].parent;
+    const next = bfsData[hash(curr)];
+    curr = next.parent;
   }
   return path;
 }
