@@ -1,19 +1,16 @@
 
-
-let digits = [0, 1, 2, 3, 4]
-let genPermutations = function*(digits, used = new Set()) {
-  for (let digit of digits) {
-    if (used.has(digit)) continue;
-    used.add(digit);
-    for (let sub_perms of genPermutations(digits, used)) {
-      yield [digit, ...sub_perms]
-    }
-    used.delete(digit);
+const user = {
+  points: 10,
+  score: function() {
+    console.log(this)
+    this.points++;
   }
 }
 
-for (let perm of genPermutations(digits)) {
-  console.log(perm)
-}
+let temp = () => user.score();
+temp();
+temp();
 
-
+console.log(user.points)
+user.score();
+console.log(user.points)
