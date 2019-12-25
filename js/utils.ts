@@ -397,3 +397,13 @@ export class PriorityQueue<T> {
       return a < b ? -1 : a > b ? 1 : 0;
   }
 }
+
+export const intersperse = <T, V>(arr: Array<T>, separator: V) => {
+  return arr.reduce((acc, el, i) => {
+    acc.push(el);
+    if (i < arr.length - 1)  {
+      acc.push(separator)
+    }
+    return acc;
+  }, [] as Array<T | V>);
+}
